@@ -3,87 +3,149 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta charset="utf-8" />
-    <title>L'Écho de l'Eau Morte - Le Serment Éparpillé</title>
+    <title>L'Écho de l'Eau Morte - Traqueur GPS</title>
     <style>
       body {
         margin: 0;
-        padding: 0;
+        padding: 15px;
         background-color: #050202;
         color: #ff3333;
         font-family: 'Courier New', monospace;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 100vh;
-        overflow: hidden;
-        text-align: center;
+        min-height: 100vh;
+        box-sizing: border-box;
       }
 
       .container {
-        width: 90%;
-        max-width: 400px;
-        background: rgba(15, 0, 0, 0.9);
+        width: 100%;
+        max-width: 420px;
+        background: rgba(15, 0, 0, 0.95);
         border: 1px solid #ff3333;
         padding: 20px;
         box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
-        border-radius: 5px;
+        border-radius: 6px;
+        box-sizing: border-box;
+        text-align: center;
       }
 
       h2 {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         letter-spacing: 2px;
-        margin-bottom: 15px;
+        margin-top: 0;
+        margin-bottom: 10px;
         text-shadow: 0 0 8px #ff0000;
       }
 
-      p {
-        font-size: 0.85rem;
+      .intro-text {
+        font-size: 0.8rem;
         color: #bbb;
         line-height: 1.4;
+        margin-bottom: 20px;
       }
 
+      /* Section Carte / Radar GPS */
+      .radar-section {
+        background: #000;
+        border: 1px solid #660000;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        text-align: left;
+      }
+
+      .radar-title {
+        font-size: 0.75rem;
+        color: #ff6666;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #330000;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .signal-card {
+        background: #0c0202;
+        border: 1px solid #331111;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 3px;
+        transition: all 0.3s ease;
+      }
+
+      .signal-card.found {
+        border-color: #00ff00;
+        background: #001100;
+      }
+
+      .signal-header {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 0.85rem;
+      }
+
+      .signal-gps {
+        font-size: 0.75rem;
+        color: #ffaaaa;
+        margin-top: 4px;
+      }
+
+      .signal-card.found .signal-gps {
+        color: #88ff88;
+      }
+
+      .gps-link {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: 0.7rem;
+        color: #ff3333;
+        text-decoration: underline;
+      }
+
+      /* Zone Fragments */
       .fragment-box {
         margin: 15px 0;
-        padding: 10px;
+        padding: 12px;
         background: #110000;
         border: 1px dashed #800000;
-        font-size: 0.9rem;
-        color: #ff6666;
+        font-size: 0.85rem;
+        color: #ffaaaa;
         min-height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
 
       input[type="text"] {
-        width: 90%;
+        width: 100%;
         background: #000;
         border: 1px solid #ff3333;
         color: #ff3333;
         padding: 10px;
         font-family: inherit;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         text-align: center;
         margin-bottom: 15px;
         text-transform: uppercase;
+        box-sizing: border-box;
       }
 
       .btn {
         background: linear-gradient(135deg, #800000, #330000);
         color: #fff;
         border: 1px solid #ff3333;
-        padding: 10px 20px;
+        padding: 12px 20px;
         font-family: inherit;
         font-weight: bold;
         cursor: pointer;
         letter-spacing: 1px;
+        width: 100%;
       }
 
       #status-msg {
         margin-top: 10px;
-        font-size: 0.75rem;
-        height: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
       }
     </style>
   </head>
@@ -91,17 +153,56 @@
 
     <div class="container">
       <h2>LE SERMENT DU PARC</h2>
-      <p>Fouillez les ombres autour de l'église. Scannez les trois balises NFC dissimulées pour assembler les fragments de la voix.</p>
-      
-      <!-- Affichage dynamique des fragments récupérés -->
+      <div class="intro-text">
+        Trois balises NFC ont été scellées autour de l'église. Utilisez les coordonnées ci-dessous pour localiser chaque signal et scanner son empreinte.
+      </div>
+
+      <!-- RADAR / CARTE TACTIQUE GPS -->
+      <div class="radar-section">
+        <div class="radar-title">
+          <span>RADAR TACTIQUE</span>
+          <span id="signals-count">0/3 REÇUS</span>
+        </div>
+
+        <!-- Signal 1 -->
+        <div class="signal-card" id="card-1">
+          <div class="signal-header">
+            <span>SIGNAL #1 : LE BANC</span>
+            <span id="status-1" style="color:#ff3333;">EN ATTENTE</span>
+          </div>
+          <div class="signal-gps">📍 N 47° 11.147' E 2° 36.788'</div>
+          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185783,2.613133" target="_blank">Ouvrir dans Google Maps 🗺️</a>
+        </div>
+
+        <!-- Signal 2 -->
+        <div class="signal-card" id="card-2">
+          <div class="signal-header">
+            <span>SIGNAL #2 : LE MURET / PARC</span>
+            <span id="status-2" style="color:#ff3333;">EN ATTENTE</span>
+          </div>
+          <div class="signal-gps">📍 N 47° 11.140' E 2° 36.793'</div>
+          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185667,2.613217" target="_blank">Ouvrir dans Google Maps 🗺️</a>
+        </div>
+
+        <!-- Signal 3 -->
+        <div class="signal-card" id="card-3">
+          <div class="signal-header">
+            <span>SIGNAL #3 : LE PUITS</span>
+            <span id="status-3" style="color:#ff3333;">EN ATTENTE</span>
+          </div>
+          <div class="signal-gps">📍 N 47° 11.110' E 2° 36.828'</div>
+          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185167,2.613800" target="_blank">Ouvrir dans Google Maps 🗺️</a>
+        </div>
+      </div>
+
+      <!-- ZONE DE RESTITUTION DE LA PHRASE -->
       <div class="fragment-box" id="fragments-display">
-        Fragments récoltés : 0 / 3
+        Chargement des signaux...
       </div>
 
       <div id="puzzle-section" style="display: none;">
-        <p style="font-size: 0.75rem; color: #ff9999;">Réécrivez la phrase complète dans l'ordre :</p>
-        <input type="text" id="sentence-input" placeholder="ENTREZ LA PHRASE..." />
-        <br>
+        <p style="font-size: 0.75rem; color: #ff9999;">Reconstituez la phrase complète du serment :</p>
+        <input type="text" id="sentence-input" placeholder="ENTREZ LA PHRASE DU SERMENT..." />
         <button class="btn" id="validate-btn">SCELLER LE PARC</button>
       </div>
 
@@ -109,32 +210,64 @@
     </div>
 
     <script>
-      // Gestion de la mémoire locale (LocalStorage) pour accumuler les scans des 3 puces
-      // Chaque puce NFC renvoie vers : acte1bis.html?token=balise1 (ou balise2, balise3)
-      
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
-      // Récupération des fragments stockés ou initialisation
-      let collected = JSON.parse(localStorage.getItem('rians_fragments') || '[]');
+      // Récupération des fragments stockés
+      let collectedTokens = JSON.parse(localStorage.getItem('rians_tokens') || '[]');
 
-      if (token) {
-        if (token === 'balise1' && !collected.includes('L\'EAU QUI DORT')) collected.push('L\'EAU QUI DORT');
-        if (token === 'balise2' && !collected.includes('NE MEURT JAMAIS')) collected.push('NE MEURT JAMAIS');
-        if (token === 'balise3' && !collected.includes('ELLE ATTEND ICI')) collected.push('ELLE ATTEND ICI');
-        
-        localStorage.setItem('rians_fragments', JSON.stringify(collected));
-        // Nettoie l'URL pour éviter de rescanner en boucle
+      if (token && !collectedTokens.includes(token)) {
+        collectedTokens.push(token);
+        localStorage.setItem('rians_tokens', JSON.stringify(collectedTokens));
+        // Nettoie l'URL pour la clarté
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // Mise à jour de l'affichage
+      // Mise à jour visuelle des cartes GPS et des fragments
+      const card1 = document.getElementById('card-1');
+      const card2 = document.getElementById('card-2');
+      const card3 = document.getElementById('card-3');
+      
+      const status1 = document.getElementById('status-1');
+      const status2 = document.getElementById('status-2');
+      const status3 = document.getElementById('status-3');
+
+      const countDisplay = document.getElementById('signals-count');
       const display = document.getElementById('fragments-display');
       const puzzleSection = document.getElementById('puzzle-section');
-      
-      display.innerHTML = `Fragments : ${collected.length} / 3<br><br><span style="font-size:0.8rem; color:#fff;">${collected.join(' / ')}</span>`;
 
-      if (collected.length === 3) {
+      let fragmentsText = [];
+
+      if (collectedTokens.includes('balise1')) {
+        card1.classList.add('found');
+        status1.innerText = "CAPTURES";
+        status1.style.color = "#00ff00";
+        fragmentsText.push("1. L'EAU QUI DORT");
+      }
+
+      if (collectedTokens.includes('balise2')) {
+        card2.classList.add('found');
+        status2.innerText = "CAPTURES";
+        status2.style.color = "#00ff00";
+        fragmentsText.push("2. NE MEURT JAMAIS");
+      }
+
+      if (collectedTokens.includes('balise3')) {
+        card3.classList.add('found');
+        status3.innerText = "CAPTURES";
+        status3.style.color = "#00ff00";
+        fragmentsText.push("3. ELLE ATTEND ICI");
+      }
+
+      countDisplay.innerText = `${collectedTokens.length}/3 CAPTURE(S)`;
+
+      if (fragmentsText.length > 0) {
+        display.innerHTML = `<strong>FRAGMENTS DE VOIX DÉCRYPTÉS :</strong><br><br>` + fragmentsText.join('<br>');
+      } else {
+        display.innerHTML = "<em>Aucun fragment détecté. Approchez-vous d'une balise NFC et scannez-la avec votre téléphone.</em>";
+      }
+
+      if (collectedTokens.length === 3) {
         puzzleSection.style.display = 'block';
       }
 
@@ -146,20 +279,18 @@
       const PHRASE_SECRETE = "L'EAU QUI DORT NE MEURT JAMAIS ELLE ATTEND ICI";
 
       validateBtn.addEventListener('click', () => {
-        const userText = sentenceInput.value.trim().toUpperCase().replace(/[']/g, "'");
-        // Nettoyage basique des espaces superflus
-        const cleanUserText = userText.replace(/\s+/g, ' ');
+        const userText = sentenceInput.value.trim().toUpperCase().replace(/[']/g, "'").replace(/\s+/g, ' ');
 
-        if (cleanUserText === PHRASE_SECRETE) {
+        if (userText === PHRASE_SECRETE) {
           statusMsg.style.color = "#00ff00";
-          statusMsg.innerText = "SCEAU VALIDÉ. LE PARC EST SCELLÉ.";
-          localStorage.removeItem('rians_fragments'); // Nettoyage pour la suite
+          statusMsg.innerText = "SCEAU VALIDÉ. REDIRECTION VERS LE PONT OUATIER...";
+          localStorage.removeItem('rians_tokens');
           setTimeout(() => {
-            window.location.href = "acte2.html"; // Passage à l'acte suivant (Pont Ouatier)
-          }, 1500);
+            window.location.href = "acte2.html";
+          }, 2000);
         } else {
           statusMsg.style.color = "#ff3333";
-          statusMsg.innerText = "ERREUR DANS LE SERMENT. L'OMBRE REJETTE CE MOT.";
+          statusMsg.innerText = "SERMENT INCORRECT. L'ESPRIT DU PARC REJETTE CE MOT.";
         }
       });
     </script>
