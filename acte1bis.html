@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta charset="utf-8" />
+    <title>L'Écho de l'Eau Morte - Le Serment Éparpillé</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #050202;
+        color: #ff3333;
+        font-family: 'Courier New', monospace;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+        text-align: center;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 400px;
+        background: rgba(15, 0, 0, 0.9);
+        border: 1px solid #ff3333;
+        padding: 20px;
+        box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+        border-radius: 5px;
+      }
+
+      h2 {
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        margin-bottom: 15px;
+        text-shadow: 0 0 8px #ff0000;
+      }
+
+      p {
+        font-size: 0.85rem;
+        color: #bbb;
+        line-height: 1.4;
+      }
+
+      .fragment-box {
+        margin: 15px 0;
+        padding: 10px;
+        background: #110000;
+        border: 1px dashed #800000;
+        font-size: 0.9rem;
+        color: #ff6666;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      input[type="text"] {
+        width: 90%;
+        background: #000;
+        border: 1px solid #ff3333;
+        color: #ff3333;
+        padding: 10px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        text-align: center;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #800000, #330000);
+        color: #fff;
+        border: 1px solid #ff3333;
+        padding: 10px 20px;
+        font-family: inherit;
+        font-weight: bold;
+        cursor: pointer;
+        letter-spacing: 1px;
+      }
+
+      #status-msg {
+        margin-top: 10px;
+        font-size: 0.75rem;
+        height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+      <h2>LE SERMENT DU PARC</h2>
+      <p>Fouillez les ombres autour de l'église. Scannez les trois balises NFC dissimulées pour assembler les fragments de la voix.</p>
+      
+      <!-- Affichage dynamique des fragments récupérés -->
+      <div class="fragment-box" id="fragments-display">
+        Fragments récoltés : 0 / 3
+      </div>
+
+      <div id="puzzle-section" style="display: none;">
+        <p style="font-size: 0.75rem; color: #ff9999;">Réécrivez la phrase complète dans l'ordre :</p>
+        <input type="text" id="sentence-input" placeholder="ENTREZ LA PHRASE..." />
+        <br>
+        <button class="btn" id="validate-btn">SCELLER LE PARC</button>
+      </div>
+
+      <div id="status-msg"></div>
+    </div>
+
+    <script>
+      // Gestion de la mémoire locale (LocalStorage) pour accumuler les scans des 3 puces
+      // Chaque puce NFC renvoie vers : acte1bis.html?token=balise1 (ou balise2, balise3)
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      // Récupération des fragments stockés ou initialisation
+      let collected = JSON.parse(localStorage.getItem('rians_fragments') || '[]');
+
+      if (token) {
+        if (token === 'balise1' && !collected.includes('L\'EAU QUI DORT')) collected.push('L\'EAU QUI DORT');
+        if (token === 'balise2' && !collected.includes('NE MEURT JAMAIS')) collected.push('NE MEURT JAMAIS');
+        if (token === 'balise3' && !collected.includes('ELLE ATTEND ICI')) collected.push('ELLE ATTEND ICI');
+        
+        localStorage.setItem('rians_fragments', JSON.stringify(collected));
+        // Nettoie l'URL pour éviter de rescanner en boucle
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Mise à jour de l'affichage
+      const display = document.getElementById('fragments-display');
+      const puzzleSection = document.getElementById('puzzle-section');
+      
+      display.innerHTML = `Fragments : ${collected.length} / 3<br><br><span style="font-size:0.8rem; color:#fff;">${collected.join(' / ')}</span>`;
+
+      if (collected.length === 3) {
+        puzzleSection.style.display = 'block';
+      }
+
+      // Validation de la phrase finale
+      const validateBtn = document.getElementById('validate-btn');
+      const sentenceInput = document.getElementById('sentence-input');
+      const statusMsg = document.getElementById('status-msg');
+
+      const PHRASE_SECRETE = "L'EAU QUI DORT NE MEURT JAMAIS ELLE ATTEND ICI";
+
+      validateBtn.addEventListener('click', () => {
+        const userText = sentenceInput.value.trim().toUpperCase().replace(/[']/g, "'");
+        // Nettoyage basique des espaces superflus
+        const cleanUserText = userText.replace(/\s+/g, ' ');
+
+        if (cleanUserText === PHRASE_SECRETE) {
+          statusMsg.style.color = "#00ff00";
+          statusMsg.innerText = "SCEAU VALIDÉ. LE PARC EST SCELLÉ.";
+          localStorage.removeItem('rians_fragments'); // Nettoyage pour la suite
+          setTimeout(() => {
+            window.location.href = "acte2.html"; // Passage à l'acte suivant (Pont Ouatier)
+          }, 1500);
+        } else {
+          statusMsg.style.color = "#ff3333";
+          statusMsg.innerText = "ERREUR DANS LE SERMENT. L'OMBRE REJETTE CE MOT.";
+        }
+      });
+    </script>
+  </body>
+</html>
