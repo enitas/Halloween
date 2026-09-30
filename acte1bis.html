@@ -148,10 +148,17 @@
       }
 
       .card-title {
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         color: #aaa;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
         font-weight: bold;
+      }
+
+      .card-gps {
+        font-size: 0.55rem;
+        color: #ff8888;
+        margin-bottom: 5px;
+        line-height: 1.2;
       }
 
       .card-status {
@@ -160,7 +167,7 @@
         color: #ff3333;
       }
 
-      /* Signal / Display */
+      /* Display Fragments */
       .count-header {
         font-size: 0.85rem;
         text-align: center;
@@ -256,18 +263,21 @@
         <div id="map"></div>
       </div>
 
-      <!-- Statut des 3 Balises -->
+      <!-- Statut des 3 Balises / Emplacements Église -->
       <div class="cards-grid">
         <div class="card" id="card-1">
-          <div class="card-title">L'EAU QUI DORT</div>
+          <div class="card-title">BANC ÉGLISE</div>
+          <div class="card-gps">N 47° 11,132'<br>E 2° 36,791'</div>
           <div class="card-status" id="status-1">ABSENT</div>
         </div>
         <div class="card" id="card-2">
-          <div class="card-title">NE MEURT JAMAIS</div>
+          <div class="card-title">PUITS ÉGLISE</div>
+          <div class="card-gps">N 47° 11,110'<br>E 2° 36,828'</div>
           <div class="card-status" id="status-2">ABSENT</div>
         </div>
         <div class="card" id="card-3">
-          <div class="card-title">ELLE ATTEND ICI</div>
+          <div class="card-title">PORCHE ÉGLISE</div>
+          <div class="card-gps">N 47° 11,140'<br>E 2° 36,793'</div>
           <div class="card-status" id="status-3">ABSENT</div>
         </div>
       </div>
@@ -311,15 +321,33 @@
         }
       });
 
-      // 3. VRAIS TERMES ET VÉRITABLES COORDONNÉES GPS (Secteur Rians 18110)
+      // 3. COORDONNÉES GPS EXACTES ET MAPPING FRAGMENTS
       const BALISE_POSITIONS = {
-        'balise1': { lat: 47.1878, lng: 2.6170, label: "1. L'EAU QUI DORT" },
-        'balise2': { lat: 47.1868, lng: 2.6183, label: "2. NE MEURT JAMAIS" },
-        'balise3': { lat: 47.1882, lng: 2.6162, label: "3. ELLE ATTEND ICI" }
+        'balise1': { 
+          name: "BANC ÉGLISE", 
+          gps: "N 47° 11,132' E 2° 36,791'",
+          lat: 47.185533, 
+          lng: 2.613183, 
+          fragment: "1. L'EAU QUI DORT" 
+        },
+        'balise2': { 
+          name: "PUITS ÉGLISE", 
+          gps: "N 47° 11,110' E 2° 36,828'",
+          lat: 47.185167, 
+          lng: 2.613800, 
+          fragment: "2. NE MEURT JAMAIS" 
+        },
+        'balise3': { 
+          name: "PORCHE ÉGLISE", 
+          gps: "N 47° 11,140' E 2° 36,793'",
+          lat: 47.185667, 
+          lng: 2.613217, 
+          fragment: "3. ELLE ATTEND ICI" 
+        }
       };
 
-      // 4. INITIALISATION CARTE (Centrée sur Rians)
-      const map = L.map('map').setView([47.1874, 2.6177], 17);
+      // 4. INITIALISATION CARTE (Centrée sur l'Église de Rians)
+      const map = L.map('map').setView([47.18545, 2.61340], 18);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(map);
@@ -336,7 +364,7 @@
           fillColor: '#ff0000',
           fillOpacity: 0.8,
           radius: 9
-        }).addTo(map).bindPopup(`<b>${pos.label}</b>`);
+        }).addTo(map).bindPopup(`<b>${pos.name}</b><br><small>${pos.gps}</small>`);
         baliseMarkers[id] = m;
       });
 
@@ -357,9 +385,8 @@
               playerMarker.setLatLng([lat, lng]);
             }
 
-            // On ne recentre la vue que la première fois pour laisser l'utilisateur explorer la carte
             if (!firstGpsFix) {
-              map.setView([lat, lng], 17);
+              map.setView([lat, lng], 18);
               firstGpsFix = true;
             }
           },
@@ -370,7 +397,7 @@
         );
       }
 
-      // 6. TRAITEMENT SCAN NFC (?token=balise1)
+      // 6. SCAN NFC (?token=balise1)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
@@ -385,25 +412,27 @@
       const display = document.getElementById('fragments-display');
       const puzzleSection = document.getElementById('puzzle-section');
 
-      // Helper pour normaliser les données en tableau propre
-      function parseBalisesArray(input) {
-        if (!input) return [];
-        if (Array.isArray(input)) return input;
-        if (typeof input === 'string') {
+      // FILTRE STRICT ANTI-BUG (Garantit uniquement balise1, balise2, balise3)
+      function parseAndCleanBalises(input) {
+        let rawArray = [];
+        if (!input) rawArray = [];
+        else if (Array.isArray(input)) rawArray = input;
+        else if (typeof input === 'string') {
           try {
             let parsed = JSON.parse(input);
-            if (Array.isArray(parsed)) return parsed;
-          } catch (e) {}
-          // Nettoyage PostgreSQL format `{balise1,balise2}`
-          let clean = input.replace(/[\{\}\"\[\]]/g, '').split(',').map(s => s.trim()).filter(Boolean);
-          return clean;
+            rawArray = Array.isArray(parsed) ? parsed : [input];
+          } catch (e) {
+            rawArray = input.replace(/[\{\}\"\[\]]/g, '').split(',').map(s => s.trim());
+          }
         }
-        return [];
+        
+        const validBalises = ['balise1', 'balise2', 'balise3'];
+        return [...new Set(rawArray)].filter(item => validBalises.includes(item));
       }
 
       // 7. MISE À JOUR DE L'INTERFACE
       function updateUI(rawBalises) {
-        const balises = parseBalisesArray(rawBalises);
+        const balises = parseAndCleanBalises(rawBalises);
         let fragmentsText = [];
 
         // Réinitialisation visuelle des cartes
@@ -422,23 +451,23 @@
 
         if (balises.includes('balise1')) {
           card1.classList.add('found'); status1.innerText = "CAPTURÉ"; status1.style.color = "#00ff00";
-          fragmentsText.push("1. L'EAU QUI DORT");
+          fragmentsText.push(BALISE_POSITIONS['balise1'].fragment);
         }
         if (balises.includes('balise2')) {
           card2.classList.add('found'); status2.innerText = "CAPTURÉ"; status2.style.color = "#00ff00";
-          fragmentsText.push("2. NE MEURT JAMAIS");
+          fragmentsText.push(BALISE_POSITIONS['balise2'].fragment);
         }
         if (balises.includes('balise3')) {
           card3.classList.add('found'); status3.innerText = "CAPTURÉ"; status3.style.color = "#00ff00";
-          fragmentsText.push("3. ELLE ATTEND ICI");
+          fragmentsText.push(BALISE_POSITIONS['balise3'].fragment);
         }
 
         countDisplay.innerText = `${balises.length}/3 CAPTURE(S)`;
 
         if (fragmentsText.length > 0) {
-          display.innerHTML = `<strong>FRAGMENTS EN DIRECT (${currentTeam}) :</strong><br><br>` + fragmentsText.join('<br>');
+          display.innerHTML = `<strong>FRAGMENTS DÉCOUVERTS (${currentTeam}) :</strong><br><br>` + fragmentsText.join('<br>');
         } else {
-          display.innerHTML = "<em>Aucun fragment détecté pour l'instant. Approchez-vous d'une balise NFC.</em>";
+          display.innerHTML = "<em>Aucun fragment détecté. Approchez-vous d'une balise à l'église.</em>";
         }
 
         if (balises.length >= 3) {
@@ -450,18 +479,17 @@
 
       // 8. SYNCHRONISATION SUPABASE
       async function syncData(newToken = null) {
-        let localTokens = parseBalisesArray(localStorage.getItem(`rians_tokens_${currentTeam}`));
+        let localTokens = parseAndCleanBalises(localStorage.getItem(`rians_tokens_${currentTeam}`));
 
-        if (newToken && !localTokens.includes(newToken)) {
+        if (newToken && ['balise1', 'balise2', 'balise3'].includes(newToken) && !localTokens.includes(newToken)) {
           localTokens.push(newToken);
-          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
         }
 
         try {
           let { data } = await db.from('equipes').select('balises').eq('code_equipe', currentTeam).maybeSingle();
-          let remoteBalises = parseBalisesArray(data ? data.balises : []);
+          let remoteBalises = parseAndCleanBalises(data ? data.balises : []);
           
-          let merged = Array.from(new Set([...remoteBalises, ...localTokens]));
+          let merged = parseAndCleanBalises([...remoteBalises, ...localTokens]);
 
           localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
 
@@ -496,8 +524,8 @@
             filter: `code_equipe=eq.${currentTeam}` 
           }, (payload) => {
             if (payload.new && payload.new.balises) {
-              let localTokens = parseBalisesArray(localStorage.getItem(`rians_tokens_${currentTeam}`));
-              let merged = Array.from(new Set([...parseBalisesArray(payload.new.balises), ...localTokens]));
+              let localTokens = parseAndCleanBalises(localStorage.getItem(`rians_tokens_${currentTeam}`));
+              let merged = parseAndCleanBalises([...parseAndCleanBalises(payload.new.balises), ...localTokens]);
               localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
               updateUI(merged);
             }
@@ -509,7 +537,6 @@
       syncData(token);
       setupRealtimeSync();
 
-      // Polling de sécurité toutes les 3 secondes
       setInterval(() => {
         syncData();
       }, 3000);
