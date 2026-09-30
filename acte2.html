@@ -26,16 +26,6 @@
         box-sizing: border-box;
       }
 
-      /* Effet Stroboscopique lors de l'impulsion */
-      body.strobo-active {
-        animation: flashStrobo 0.15s infinite alternate;
-      }
-
-      @keyframes flashStrobo {
-        0% { background-color: #050202; }
-        100% { background-color: #ff0000; }
-      }
-
       .container {
         width: 100%;
         max-width: 480px;
@@ -45,6 +35,19 @@
         box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
         border-radius: 6px;
         box-sizing: border-box;
+        transition: transform 0.05s ease;
+      }
+
+      /* Effet Shake (Tremblement console) */
+      .shake {
+        animation: shakeAnim 0.4s cubic-bezier(.36,.07,.19,.97) both;
+      }
+
+      @keyframes shakeAnim {
+        10%, 90% { transform: translate3d(-2px, 0, 0); }
+        20%, 80% { transform: translate3d(4px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+        40%, 60% { transform: translate3d(6px, 0, 0); }
       }
 
       h1 {
@@ -56,7 +59,13 @@
         text-shadow: 0 0 10px #ff0000;
       }
 
-      /* Alert Box Danger Modéré */
+      .team-info {
+        font-size: 0.75rem;
+        color: #aaa;
+        margin-bottom: 10px;
+        text-align: right;
+      }
+
       .alert-banner {
         background: #2a0000;
         border: 1px solid #ff0000;
@@ -77,13 +86,6 @@
         padding: 2px 6px;
         border-radius: 2px;
         font-size: 0.65rem;
-      }
-
-      .team-info {
-        font-size: 0.75rem;
-        color: #aaa;
-        margin-bottom: 10px;
-        text-align: right;
       }
 
       /* Carte & GPS */
@@ -109,6 +111,22 @@
         border: 1px solid #ff3333;
         border-radius: 4px;
         background: #111;
+        position: relative;
+      }
+
+      /* Onde Sonar sur la Carte */
+      .sonar-wave {
+        border: 2px solid #00ff00;
+        border-radius: 50%;
+        position: absolute;
+        background: rgba(0, 255, 0, 0.2);
+        animation: pulseWave 1.8s ease-out infinite;
+        pointer-events: none;
+      }
+
+      @keyframes pulseWave {
+        0% { transform: scale(0.1); opacity: 1; }
+        100% { transform: scale(3.5); opacity: 0; }
       }
 
       /* Card Puits Mairie */
@@ -147,7 +165,7 @@
         color: #ff3333;
       }
 
-      /* Terminal / Détections */
+      /* Terminal avec balayage CRT */
       .terminal-box {
         background: #000;
         border: 1px solid #800000;
@@ -158,6 +176,18 @@
         color: #ffaaaa;
         border-radius: 4px;
         margin-bottom: 15px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .terminal-box::after {
+        content: " ";
+        display: block;
+        position: absolute;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+        background-size: 100% 4px;
+        pointer-events: none;
       }
 
       .action-btn {
@@ -170,17 +200,17 @@
         cursor: pointer;
         width: 100%;
         border-radius: 4px;
+        letter-spacing: 1px;
       }
     </style>
   </head>
   <body>
 
-    <div class="container">
+    <div class="container" id="main-container">
       <h1>ACTE II : RÉSEAU SOUTERRAIN</h1>
 
       <div class="team-info">ÉQUIPE : <strong id="team-name" style="color:#fff;">---</strong></div>
 
-      <!-- Alerte niveau de danger -->
       <div class="alert-banner">
         <span>ANOMALIE RÉSEAU DÉTECTÉE</span>
         <span class="danger-tag">DANGER : MODÉRÉ</span>
@@ -195,7 +225,7 @@
         <div id="map"></div>
       </div>
 
-      <!-- Informations Cible -->
+      <!-- Cible Puits Mairie -->
       <div class="target-card" id="target-card">
         <div class="target-title">2. PUITS MAIRIE</div>
         <div class="target-gps">N 47° 11,085' E 2° 36,823'</div>
@@ -207,7 +237,7 @@
         <em>Approchez-vous du Puits de la Mairie et scannez la puce NFC pour analyser le réseau souterrain...</em>
       </div>
 
-      <button class="action-btn" id="trigger-strobo-btn" style="display:none;">DÉCLENCHER L'IMPULSION STROBOSCOPIQUE</button>
+      <button class="action-btn" id="trigger-strobo-btn" style="display:none;">DÉCLENCHER L'IMPULSION SOUTERRAINE</button>
     </div>
 
     <script>
@@ -219,7 +249,7 @@
       const currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
       document.getElementById('team-name').innerText = currentTeam;
 
-      // 2. DONNÉES CIBLE : PUITS MAIRIE
+      // 2. CIBLE : PUITS MAIRIE
       const PUITS_MAIRIE = {
         id: "puits_mairie",
         name: "PUITS MAIRIE",
@@ -228,13 +258,13 @@
         gpsStr: "N 47° 11,085' E 2° 36,823'"
       };
 
-      // 3. INITIALISATION CARTE LEAFLET
+      // 3. CARTE LEAFLET
       const map = L.map('map').setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(map);
 
-      const marker = L.circleMarker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], {
+      const targetMarker = L.circleMarker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], {
         color: '#ff0000',
         fillColor: '#ff0000',
         fillOpacity: 0.8,
@@ -259,30 +289,75 @@
         }, null, { enableHighAccuracy: true });
       }
 
-      // 5. STROBOSCOPE ET VALIDATION
+      // 5. MOTEUR D'IMPULSION IMMERSIVE (AUDIO + VIBRATION + SHAKE + SONAR)
+      function playImpulseSound() {
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(60, audioCtx.currentTime); // Basse fréquence 60Hz
+          osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 1.2);
+
+          gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.4);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start();
+          osc.stop(audioCtx.currentTime + 1.4);
+        } catch (e) {
+          console.log("Audio non actif");
+        }
+      }
+
+      function triggerAdvancedImpulse() {
+        // Vibration haptique
+        if ("vibrate" in navigator) {
+          navigator.vibrate([100, 50, 100, 50, 400]);
+        }
+
+        // Son synthétisé
+        playImpulseSound();
+
+        // Screen Shake
+        const container = document.getElementById('main-container');
+        container.classList.add('shake');
+        setTimeout(() => container.classList.remove('shake'), 400);
+
+        // Onde Sonar sur la carte
+        const sonarMarker = L.marker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], {
+          icon: L.divIcon({
+            className: 'sonar-wave',
+            iconSize: [60, 60],
+            iconAnchor: [30, 30]
+          })
+        }).addTo(map);
+
+        setTimeout(() => {
+          map.removeLayer(sonarMarker);
+        }, 5000);
+      }
+
+      // 6. VALIDATION ET SYNCHRO SUPABASE
       const targetCard = document.getElementById('target-card');
       const targetStatus = document.getElementById('target-status');
       const terminal = document.getElementById('terminal');
       const stroboBtn = document.getElementById('trigger-strobo-btn');
-
-      function triggerStroboscope() {
-        document.body.classList.add('strobo-active');
-        setTimeout(() => {
-          document.body.classList.remove('strobo-active');
-        }, 2000);
-      }
 
       async function validatePuitsMairie() {
         targetCard.classList.add('active');
         targetStatus.innerText = "CAPTURÉ — PROTOCOLE NFC VALIDE";
         targetStatus.style.color = "#00ff00";
 
-        terminal.innerHTML = `<strong>ANALYSE DU RÉSEAU SOUTERRAIN :</strong><br>Puce NFC identifiée.<br>Prêt pour le déclenchement de la première impulsion stroboscopique.`;
+        terminal.innerHTML = `<strong>ANALYSE DU RÉSEAU SOUTERRAIN :</strong><br>Puce NFC identifiée.<br>Première impulsion transmise avec succès.`;
 
         stroboBtn.style.display = "block";
-        triggerStroboscope();
+        triggerAdvancedImpulse();
 
-        // Sauvegarde Supabase & LocalStorage
+        // Enregistrement
         try {
           let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
           if (!localTokens.includes('puits_mairie')) localTokens.push('puits_mairie');
@@ -298,7 +373,7 @@
         }
       }
 
-      // 6. TRAITEMENT DU SCAN NFC (?token=puits_mairie)
+      // 7. DÉTECTION NFC (?token=puits_mairie)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
@@ -308,8 +383,8 @@
       }
 
       stroboBtn.addEventListener('click', () => {
-        triggerStroboscope();
-        terminal.innerHTML += `<br><span style="color:#00ff00;">> IMPULSION TRANSMISE DANS LE RÉSEAU SOUTERRAIN.</span>`;
+        triggerAdvancedImpulse();
+        terminal.innerHTML += `<br><span style="color:#00ff00;">> IMPULSION RÉÉMISE DANS LE RÉSEAU.</span>`;
       });
     </script>
   </body>
