@@ -3,9 +3,15 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta charset="utf-8" />
-    <title>Acte I Bis — Captures & Fragments</title>
+    <title>Acte I Bis — Captures, GPS & Serment</title>
+    
     <!-- SDK Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Leaflet (Carte Interactive) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
       body {
         margin: 0;
@@ -22,21 +28,21 @@
 
       .container {
         width: 100%;
-        max-width: 450px;
+        max-width: 480px;
         background: rgba(15, 0, 0, 0.95);
         border: 1px solid #ff3333;
-        padding: 20px;
+        padding: 15px;
         box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
         border-radius: 6px;
         box-sizing: border-box;
       }
 
       h1 {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         letter-spacing: 2px;
         text-align: center;
         margin-top: 0;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         text-shadow: 0 0 10px #ff0000;
       }
 
@@ -45,21 +51,14 @@
         background: #110000;
         border: 1px solid #660000;
         padding: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         border-radius: 4px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .team-box label {
-        font-size: 0.8rem;
-        color: #ffaaaa;
       }
 
       .team-inputs {
         display: flex;
         gap: 8px;
+        margin-top: 5px;
       }
 
       .team-inputs input {
@@ -88,6 +87,7 @@
         color: #888;
         display: flex;
         justify-content: space-between;
+        margin-top: 6px;
       }
 
       .status-badge {
@@ -99,12 +99,37 @@
         color: #00ff00;
       }
 
+      /* Bloc GPS & Carte */
+      .gps-box {
+        background: #0a0000;
+        border: 1px solid #800000;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+      }
+
+      .gps-coords {
+        font-size: 0.75rem;
+        color: #ffaaaa;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      #map {
+        width: 100%;
+        height: 220px;
+        border: 1px solid #ff3333;
+        border-radius: 4px;
+        background: #111;
+      }
+
       /* Cartes Balises */
       .cards-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
 
       .card {
@@ -136,25 +161,25 @@
 
       /* Signal / Display */
       .count-header {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         font-weight: bold;
       }
 
       .display-box {
         background: #000;
         border: 1px solid #800000;
-        padding: 15px;
-        min-height: 80px;
+        padding: 12px;
+        min-height: 70px;
         font-size: 0.85rem;
-        line-height: 1.5;
+        line-height: 1.4;
         color: #ffaaaa;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         border-radius: 4px;
       }
 
-      /* Section Enigme finale */
+      /* Énigme finale */
       .puzzle-box {
         background: #150000;
         border: 1px solid #ff3333;
@@ -206,19 +231,28 @@
   <body>
 
     <div class="container">
-      <h1>ACTE I BIS : LE SERMENT</h1>
+      <h1>ACTE I BIS : LE SERMENT & GPS</h1>
 
-      <!-- Config Équipe -->
+      <!-- Identifiant Équipe -->
       <div class="team-box">
-        <label for="team-code-input">IDENTIFIANT D'ÉQUIPE :</label>
+        <span style="font-size: 0.8rem; color: #ffaaaa;">ÉQUIPE :</span>
         <div class="team-inputs">
           <input type="text" id="team-code-input" placeholder="EX: TEAM1" />
           <button id="set-team-btn">OK</button>
         </div>
         <div class="status-line">
-          <span>RÉSEAU MULTI-JOUEURS :</span>
-          <span id="synchro-status" class="status-badge">CONNEXION...</span>
+          <span>SYNCHRO SUPABASE :</span>
+          <span id="synchro-status" class="status-badge">RECHERCHE...</span>
         </div>
+      </div>
+
+      <!-- Coordonnées GPS & Carte -->
+      <div class="gps-box">
+        <div class="gps-coords">
+          <span id="gps-status">GPS : RECHERCHE...</span>
+          <span id="gps-acc"></span>
+        </div>
+        <div id="map"></div>
       </div>
 
       <!-- Statut des 3 Balises -->
@@ -237,10 +271,10 @@
         </div>
       </div>
 
-      <!-- Compteur et Fragments -->
+      <!-- Affichage Fragments -->
       <div class="count-header" id="signals-count">0/3 CAPTURE(S)</div>
       <div class="display-box" id="fragments-display">
-        <em>Recherche des signaux d'équipe en cours...</em>
+        <em>Recherche des signaux d'équipe...</em>
       </div>
 
       <!-- Énigme finale -->
@@ -253,19 +287,16 @@
     </div>
 
     <script>
-      // 1. CONFIGURATION SUPABASE OFFICIELLE
+      // 1. CONFIGURATION SUPABASE
       const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
       const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
-
       const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // 2. GESTION DE L'ÉQUIPE
+      // 2. GESTION ÉQUIPE
       let currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
       const teamInput = document.getElementById('team-code-input');
       const setTeamBtn = document.getElementById('set-team-btn');
       const synchroStatus = document.getElementById('synchro-status');
-
-      let activeChannel = null;
 
       teamInput.value = currentTeam;
 
@@ -274,11 +305,65 @@
         if (val) {
           currentTeam = val;
           localStorage.setItem('rians_team', currentTeam);
-          initSync();
+          setupRealtimeSync();
+          syncData();
         }
       });
 
-      // 3. PARAMÈTRES URL (NFC)
+      // 3. POSITIONS DES BALISES (Rians / Modifiables si besoin)
+      const BALISE_POSITIONS = {
+        'balise1': { lat: 43.5905, lng: 5.7580, label: "Balise 1 - L'Eau" },
+        'balise2': { lat: 43.5912, lng: 5.7592, label: "Balise 2 - La Mort" },
+        'balise3': { lat: 43.5898, lng: 5.7570, label: "Balise 3 - L'Attente" }
+      };
+
+      // 4. CARTE LEAFLET
+      const map = L.map('map').setView([43.5905, 5.7580], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      let playerMarker = null;
+      let baliseMarkers = {};
+
+      // Initialisation des marqueurs de balises sur la carte
+      Object.keys(BALISE_POSITIONS).forEach(id => {
+        const pos = BALISE_POSITIONS[id];
+        const m = L.circleMarker([pos.lat, pos.lng], {
+          color: '#ff3333',
+          fillColor: '#ff0000',
+          fillOpacity: 0.7,
+          radius: 8
+        }).addTo(map).bindPopup(pos.label);
+        baliseMarkers[id] = m;
+      });
+
+      // 5. GÉOLOCALISATION GPS EN DIRECT
+      if ('geolocation' in navigator) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const acc = Math.round(position.coords.accuracy);
+
+            document.getElementById('gps-status').innerText = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            document.getElementById('gps-acc').innerText = `±${acc}m`;
+
+            if (!playerMarker) {
+              playerMarker = L.marker([lat, lng]).addTo(map).bindPopup("VOUS ÉTES ICI").openPopup();
+              map.setView([lat, lng], 17);
+            } else {
+              playerMarker.setLatLng([lat, lng]);
+            }
+          },
+          (error) => {
+            document.getElementById('gps-status').innerText = "GPS : SIGNAL PERDU";
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+
+      // 6. GESTION DES SCAN BALISES (URL ?token=balise1)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
@@ -292,16 +377,24 @@
       const countDisplay = document.getElementById('signals-count');
       const display = document.getElementById('fragments-display');
       const puzzleSection = document.getElementById('puzzle-section');
-      const statusMsg = document.getElementById('status-msg');
 
-      // 4. MISE À JOUR DE L'INTERFACE
+      // 7. MISE À JOUR DE L'INTERFACE & CARTE
       function updateUI(balises) {
         let fragmentsText = [];
 
-        // Réinitialisation des cartes
+        // Reset
         card1.classList.remove('found'); status1.innerText = "ABSENT"; status1.style.color = "#ff3333";
         card2.classList.remove('found'); status2.innerText = "ABSENT"; status2.style.color = "#ff3333";
         card3.classList.remove('found'); status3.innerText = "ABSENT"; status3.style.color = "#ff3333";
+
+        // Marqueurs carte
+        Object.keys(baliseMarkers).forEach(id => {
+          if (balises.includes(id)) {
+            baliseMarkers[id].setStyle({ color: '#00ff00', fillColor: '#00ff00' });
+          } else {
+            baliseMarkers[id].setStyle({ color: '#ff3333', fillColor: '#ff0000' });
+          }
+        });
 
         if (balises.includes('balise1')) {
           card1.classList.add('found'); status1.innerText = "CAPTURES"; status1.style.color = "#00ff00";
@@ -319,9 +412,9 @@
         countDisplay.innerText = `${balises.length}/3 CAPTURE(S)`;
 
         if (fragmentsText.length > 0) {
-          display.innerHTML = `<strong>FRAGMENTS EN DIRECT (ÉQUIPE ${currentTeam}) :</strong><br><br>` + fragmentsText.join('<br>');
+          display.innerHTML = `<strong>FRAGMENTS (ÉQUIPE ${currentTeam}) :</strong><br><br>` + fragmentsText.join('<br>');
         } else {
-          display.innerHTML = "<em>Aucun fragment détecté pour l'instant. Approchez-vous d'une balise NFC.</em>";
+          display.innerHTML = "<em>Aucun fragment détecté. Approchez-vous d'une balise NFC.</em>";
         }
 
         if (balises.length >= 3) {
@@ -331,68 +424,83 @@
         }
       }
 
-      // 5. INITIALISATION DE LA SYNCHRONISATION
-      async function initSync() {
+      // 8. SYNCHRONISATION SUPABASE (LECTURE/ÉCRITURE)
+      async function syncData(newToken = null) {
         let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
-
-        try {
-          // Lecture Supabase
-          let { data, error: readError } = await db.from('equipes').select('balises').eq('code_equipe', currentTeam).maybeSingle();
-          if (readError) console.error("Erreur de lecture :", readError);
-          
-          let remoteBalises = (data && data.balises) ? data.balises : [];
-          let merged = Array.from(new Set([...remoteBalises, ...localTokens]));
-
-          if (token && !merged.includes(token)) {
-            merged.push(token);
-          }
-
-          // Écriture Supabase
-          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
-          const { error: writeError } = await db.from('equipes').upsert({ code_equipe: currentTeam, balises: merged, updated_at: new Date() });
-          
-          if (writeError) console.error("Erreur d'écriture Supabase :", writeError);
-
-          synchroStatus.innerText = "CONNECTÉ";
-          synchroStatus.classList.add('online');
-          updateUI(merged);
-
-          // Abonnement aux changements en temps réel (INSERT & UPDATE)
-          if (activeChannel) {
-             db.removeChannel(activeChannel);
-          }
-
-          activeChannel = db.channel(`team-${currentTeam}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'equipes', filter: `code_equipe=eq.${currentTeam}` }, (payload) => {
-              if (payload.new && payload.new.balises) {
-                localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(payload.new.balises));
-                updateUI(payload.new.balises);
-              }
-            })
-            .subscribe();
-
-        } catch (e) {
-          console.warn("Erreur globale :", e);
-          synchroStatus.innerText = "HORS LIGNE";
-          synchroStatus.classList.remove('online');
-          if (token && !localTokens.includes(token)) {
-            localTokens.push(token);
-            localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
-          }
-          updateUI(localTokens);
+        if (newToken && !localTokens.includes(newToken)) {
+          localTokens.push(newToken);
+          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
         }
 
-        // Nettoyage du paramètre dans l'URL
-        if (token) {
-          window.history.replaceState({}, document.title, window.location.pathname);
+        try {
+          let { data } = await db.from('equipes').select('balises').eq('code_equipe', currentTeam).maybeSingle();
+          let remoteBalises = (data && data.balises) ? data.balises : [];
+          
+          let merged = Array.from(new Set([...remoteBalises, ...localTokens]));
+
+          if (JSON.stringify(merged) !== JSON.stringify(remoteBalises) || !data) {
+            localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
+            await db.from('equipes').upsert({
+              code_equipe: currentTeam,
+              balises: merged,
+              updated_at: new Date().toISOString()
+            });
+          } else {
+            localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
+          }
+
+          synchroStatus.innerText = "CONNECTÉ";
+          synchroStatus.className = "status-badge online";
+          updateUI(merged);
+        } catch (e) {
+          console.error("Erreur synchro :", e);
+          synchroStatus.innerText = "SANS RESEAU";
+          synchroStatus.className = "status-badge";
+          updateUI(localTokens);
         }
       }
 
-      initSync();
+      // 9. ÉCOUTE TEMPS RÉEL + REFRESH AUTOMATIQUE (POLLING 3 SECONDES)
+      let activeChannel = null;
 
-      // 6. VALIDATION DU SERMENT FINALE
+      function setupRealtimeSync() {
+        if (activeChannel) db.removeChannel(activeChannel);
+
+        activeChannel = db.channel(`room_${currentTeam}_${Date.now()}`)
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'equipes', 
+            filter: `code_equipe=eq.${currentTeam}` 
+          }, (payload) => {
+            if (payload.new && payload.new.balises) {
+              let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
+              let merged = Array.from(new Set([...payload.new.balises, ...localTokens]));
+              localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
+              updateUI(merged);
+            }
+          })
+          .subscribe();
+      }
+
+      // Traitement initial du scan
+      syncData(token);
+      setupRealtimeSync();
+
+      // Polling de secours toutes les 3 secondes
+      setInterval(() => {
+        syncData();
+      }, 3000);
+
+      // Nettoyage URL
+      if (token) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // 10. VALIDATION PHRASE FINALE
       const validateBtn = document.getElementById('validate-btn');
       const sentenceInput = document.getElementById('sentence-input');
+      const statusMsg = document.getElementById('status-msg');
       const PHRASE_SECRETE = "L'EAU QUI DORT NE MEURT JAMAIS ELLE ATTEND ICI";
 
       validateBtn.addEventListener('click', () => {
@@ -406,7 +514,7 @@
           }, 2000);
         } else {
           statusMsg.style.color = "#ff3333";
-          statusMsg.innerText = "PHRASE INCORRECTE. L'ESPRIT DU PARC REFUSE CE MOT.";
+          statusMsg.innerText = "PHRASE INCORRECTE. L'ESPRIT REFUSE CE MOT.";
         }
       });
     </script>
