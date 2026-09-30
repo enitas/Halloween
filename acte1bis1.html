@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta charset="utf-8" />
+    <title>L'Écho de l'Eau Morte — Traqueur GPS & Synchro</title>
+    <!-- SDK Supabase (Temps Réel) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 15px;
+        background-color: #050202;
+        color: #ff3333;
+        font-family: 'Courier New', monospace;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        box-sizing: border-box;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(15, 0, 0, 0.95);
+        border: 1px solid #ff3333;
+        padding: 20px;
+        box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+        border-radius: 6px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      h2 {
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        margin-top: 0;
+        margin-bottom: 10px;
+        text-shadow: 0 0 8px #ff0000;
+      }
+
+      /* Barre Équipe */
+      .team-bar {
+        background: #100202;
+        border: 1px solid #660000;
+        padding: 8px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.8rem;
+      }
+
+      .team-bar input {
+        background: #000;
+        border: 1px solid #800000;
+        color: #fff;
+        padding: 4px 8px;
+        font-family: inherit;
+        text-transform: uppercase;
+        width: 90px;
+        text-align: center;
+      }
+
+      .team-bar button {
+        background: #330000;
+        border: 1px solid #ff3333;
+        color: #fff;
+        padding: 4px 10px;
+        font-family: inherit;
+        cursor: pointer;
+        font-size: 0.75rem;
+      }
+
+      .radar-section {
+        background: #000;
+        border: 1px solid #660000;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        text-align: left;
+      }
+
+      .radar-title {
+        font-size: 0.75rem;
+        color: #ff6666;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #330000;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .signal-card {
+        background: #0c0202;
+        border: 1px solid #331111;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 3px;
+        transition: all 0.3s ease;
+      }
+
+      .signal-card.found {
+        border-color: #00ff00;
+        background: #001100;
+      }
+
+      .signal-header {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 0.8rem;
+      }
+
+      .signal-gps {
+        font-size: 0.75rem;
+        color: #ffaaaa;
+        margin-top: 4px;
+      }
+
+      .signal-card.found .signal-gps {
+        color: #88ff88;
+      }
+
+      .gps-link {
+        display: inline-block;
+        margin-top: 5px;
+        font-size: 0.7rem;
+        color: #ff3333;
+        text-decoration: underline;
+      }
+
+      .fragment-box {
+        margin: 15px 0;
+        padding: 12px;
+        background: #110000;
+        border: 1px dashed #800000;
+        font-size: 0.85rem;
+        color: #ffaaaa;
+        min-height: 40px;
+      }
+
+      input[type="text"]#sentence-input {
+        width: 100%;
+        background: #000;
+        border: 1px solid #ff3333;
+        color: #ff3333;
+        padding: 10px;
+        font-family: inherit;
+        font-size: 0.85rem;
+        text-align: center;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        box-sizing: border-box;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #800000, #330000);
+        color: #fff;
+        border: 1px solid #ff3333;
+        padding: 12px 20px;
+        font-family: inherit;
+        font-weight: bold;
+        cursor: pointer;
+        letter-spacing: 1px;
+        width: 100%;
+      }
+
+      #status-msg {
+        margin-top: 10px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .synchro-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: #222;
+        color: #aaa;
+      }
+
+      .synchro-badge.online {
+        background: #004400;
+        color: #00ff00;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="container">
+      <h2>LE SERMENT DU PARC</h2>
+
+      <!-- Panneau Code Équipe -->
+      <div class="team-bar">
+        <span>ÉQUIPE :</span>
+        <input type="text" id="team-code-input" maxlength="10" placeholder="CODE" />
+        <button id="set-team-btn">OK</button>
+        <span id="synchro-status" class="synchro-badge">HORS-LIGNE</span>
+      </div>
+
+      <!-- RADAR TACTIQUE GPS -->
+      <div class="radar-section">
+        <div class="radar-title">
+          <span>RADAR TACTIQUE</span>
+          <span id="signals-count">0/3 REÇUS</span>
+        </div>
+
+        <div class="signal-card" id="card-1">
+          <div class="signal-header">
+            <span>SIGNAL #1 : LE BANC</span>
+            <span id="status-1" style="color:#ff3333;">RECHERCHE</span>
+          </div>
+          <div class="signal-gps">📍 N 47° 11.147' E 2° 36.788'</div>
+          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185783,2.613133" target="_blank">Google Maps 🗺️</a>
+        </div>
+
+        <div class="signal-card" id="card-2">
+          <div class="signal-header">
+            <span>SIGNAL #2 : CÔTÉ PARC</span>
+            <span id="status-2" style="color:#ff3333;">RECHERCHE</span>
+          </div>
+          <div class="signal-gps">📍 N 47° 11.140' E 2° 36.793'</div>
+          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185667,2.613217" target="_blank">Google Maps 🗺️</a>
+        </div>
+
+        <div class="signal-card" id="card-3">
+          <div class="signal-header">
+            <span>SIGNAL #3 : LE PUITS</span>
+            <span id="status-3" style="color:#ff3333;">RECHERCHE</span>
+          </div>
+          <div class="signal-gps">📍 N 47° 11.110' E 2° 36.828'</div>
+          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185167,2.613800" target="_blank">Google Maps 🗺️</a>
+        </div>
+      </div>
+
+      <!-- AFFICHAGE DES FRAGMENTS DÉCRYPTÉS -->
+      <div class="fragment-box" id="fragments-display">
+        Initialisation du signal...
+      </div>
+
+      <!-- FORMULAIRE DE VALIDATION -->
+      <div id="puzzle-section" style="display: none;">
+        <p style="font-size: 0.75rem; color: #ff9999;">Restituez la phrase complète du serment :</p>
+        <input type="text" id="sentence-input" placeholder="ENTREZ LA PHRASE COMPLÈTE..." />
+        <button class="btn" id="validate-btn">SCELLER LE PARC</button>
+      </div>
+
+      <div id="status-msg"></div>
+    </div>
+
+    <script>
+      // CONFIGURATION SUPABASE OFFICIELLE
+      const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
+
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // Gestion de l'Équipe (Défaut : TEAM1)
+      let currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
+      const teamInput = document.getElementById('team-code-input');
+      const setTeamBtn = document.getElementById('set-team-btn');
+      const synchroStatus = document.getElementById('synchro-status');
+
+      teamInput.value = currentTeam;
+
+      setTeamBtn.addEventListener('click', () => {
+        const val = teamInput.value.trim().toUpperCase();
+        if (val) {
+          currentTeam = val;
+          localStorage.setItem('rians_team', currentTeam);
+          initSync();
+        }
+      });
+
+      // Traitement des paramètres d'URL (Scan NFC)
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      // Éléments DOM
+      const card1 = document.getElementById('card-1');
+      const card2 = document.getElementById('card-2');
+      const card3 = document.getElementById('card-3');
+      const status1 = document.getElementById('status-1');
+      const status2 = document.getElementById('status-2');
+      const status3 = document.getElementById('status-3');
+      const countDisplay = document.getElementById('signals-count');
+      const display = document.getElementById('fragments-display');
+      const puzzleSection = document.getElementById('puzzle-section');
+      const statusMsg = document.getElementById('status-msg');
+
+      // Mettre à jour l'interface avec la liste des balises capturées
+      function updateUI(balises) {
+        let fragmentsText = [];
+
+        if (balises.includes('balise1')) {
+          card1.classList.add('found');
+          status1.innerText = "CAPTURES";
+          status1.style.color = "#00ff00";
+          fragmentsText.push("1. L'EAU QUI DORT");
+        }
+
+        if (balises.includes('balise2')) {
+          card2.classList.add('found');
+          status2.innerText = "CAPTURES";
+          status2.style.color = "#00ff00";
+          fragmentsText.push("2. NE MEURT JAMAIS");
+        }
+
+        if (balises.includes('balise3')) {
+          card3.classList.add('found');
+          status3.innerText = "CAPTURES";
+          status3.style.color = "#00ff00";
+          fragmentsText.push("3. ELLE ATTEND ICI");
+        }
+
+        countDisplay.innerText = `${balises.length}/3 CAPTURE(S)`;
+
+        if (fragmentsText.length > 0) {
+          display.innerHTML = `<strong>FRAGMENTS EN DIRECT (ÉQUIPE ${currentTeam}) :</strong><br><br>` + fragmentsText.join('<br>');
+        } else {
+          display.innerHTML = "<em>Aucun fragment détecté pour l'instant. Approchez-vous d'une balise NFC.</em>";
+        }
+
+        if (balises.length >= 3) {
+          puzzleSection.style.display = 'block';
+        }
+      }
+
+      // Synchronisation Supabase + Fallback Local
+      async function initSync() {
+        let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
+
+        try {
+          // 1. Récupérer les données existantes de l'équipe dans Supabase
+          let { data, error } = await db.from('equipes').select('balises').eq('code_equipe', currentTeam).maybeSingle();
+          
+          let remoteBalises = (data && data.balises) ? data.balises : [];
+
+          // Fusionner local + remote + nouveau scan éventuel
+          let merged = Array.from(new Set([...remoteBalises, ...localTokens]));
+
+          if (token && !merged.includes(token)) {
+            merged.push(token);
+          }
+
+          // Mettre à jour la mémoire locale et la base Supabase
+          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
+          await db.from('equipes').upsert({ code_equipe: currentTeam, balises: merged, updated_at: new Date() });
+
+          synchroStatus.innerText = "CONNECTÉ";
+          synchroStatus.classList.add('online');
+          updateUI(merged);
+
+          // 2. Abonnement au canal Temps Réel pour voir les puces scannées par les coéquipiers
+          db.channel(`team-${currentTeam}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'equipes', filter: `code_equipe=eq.${currentTeam}` }, (payload) => {
+              if (payload.new && payload.new.balises) {
+                localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(payload.new.balises));
+                updateUI(payload.new.balises);
+              }
+            })
+            .subscribe();
+
+        } catch (e) {
+          console.warn("Connexion réseau instable, bascule en mode local:", e);
+          synchroStatus.innerText = "SANS LIGNE";
+          synchroStatus.classList.remove('online');
+
+          if (token && !localTokens.includes(token)) {
+            localTokens.push(token);
+            localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
+          }
+          updateUI(localTokens);
+        }
+
+        // Nettoyer l'URL
+        if (token) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+
+      // Lancement au chargement
+      initSync();
+
+      // Validation de la phrase finale
+      const validateBtn = document.getElementById('validate-btn');
+      const sentenceInput = document.getElementById('sentence-input');
+      const PHRASE_SECRETE = "L'EAU QUI DORT NE MEURT JAMAIS ELLE ATTEND ICI";
+
+      validateBtn.addEventListener('click', () => {
+        const userText = sentenceInput.value.trim().toUpperCase().replace(/[']/g, "'").replace(/\s+/g, ' ');
+
+        if (userText === PHRASE_SECRETE) {
+          statusMsg.style.color = "#00ff00";
+          statusMsg.innerText = "SERMENT ACCEPTÉ. PASSAGE À L'ACTE II...";
+          setTimeout(() => {
+            window.location.href = "acte2.html";
+          }, 2000);
+        } else {
+          statusMsg.style.color = "#ff3333";
+          statusMsg.innerText = "PHRASE INCORRECTE. L'ESPRIT DU PARC REFUSE CE MOT.";
+        }
+      });
+    </script>
+  </body>
+</html>
