@@ -1,0 +1,155 @@
+// CONFIGURATION SUPABASE OFFICIELLE
+      const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
+
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // Gestion de l'Équipe
+      let currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
+      const teamInput = document.getElementById('team-code-input');
+      const setTeamBtn = document.getElementById('set-team-btn');
+      const synchroStatus = document.getElementById('synchro-status');
+
+      let activeChannel = null; // Gère le canal de synchronisation
+
+      teamInput.value = currentTeam;
+
+      setTeamBtn.addEventListener('click', () => {
+        const val = teamInput.value.trim().toUpperCase();
+        if (val) {
+          currentTeam = val;
+          localStorage.setItem('rians_team', currentTeam);
+          initSync();
+        }
+      });
+
+      // Traitement du Scan NFC
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      // Éléments DOM
+      const card1 = document.getElementById('card-1');
+      const card2 = document.getElementById('card-2');
+      const card3 = document.getElementById('card-3');
+      const status1 = document.getElementById('status-1');
+      const status2 = document.getElementById('status-2');
+      const status3 = document.getElementById('status-3');
+      const countDisplay = document.getElementById('signals-count');
+      const display = document.getElementById('fragments-display');
+      const puzzleSection = document.getElementById('puzzle-section');
+      const statusMsg = document.getElementById('status-msg');
+
+      function updateUI(balises) {
+        let fragmentsText = [];
+
+        if (balises.includes('balise1')) {
+          card1.classList.add('found'); status1.innerText = "CAPTURES"; status1.style.color = "#00ff00";
+          fragmentsText.push("1. L'EAU QUI DORT");
+        }
+        if (balises.includes('balise2')) {
+          card2.classList.add('found'); status2.innerText = "CAPTURES"; status2.style.color = "#00ff00";
+          fragmentsText.push("2. NE MEURT JAMAIS");
+        }
+        if (balises.includes('balise3')) {
+          card3.classList.add('found'); status3.innerText = "CAPTURES"; status3.style.color = "#00ff00";
+          fragmentsText.push("3. ELLE ATTEND ICI");
+        }
+
+        countDisplay.innerText = `${balises.length}/3 CAPTURE(S)`;
+
+        if (fragmentsText.length > 0) {
+          display.innerHTML = `<strong>FRAGMENTS EN DIRECT (ÉQUIPE ${currentTeam}) :</strong><br><br>` + fragmentsText.join('<br>');
+        } else {
+          display.innerHTML = "<em>Aucun fragment détecté pour l'instant. Approchez-vous d'une balise NFC.</em>";
+        }
+
+        if (balises.length >= 3) {
+          puzzleSection.style.display = 'block';
+        }
+      }
+
+      async function initSync() {
+        let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
+
+        try {
+          // 1. Lire la base de données
+          let { data, error: readError } = await db.from('equipes').select('balises').eq('code_equipe', currentTeam).maybeSingle();
+          if (readError) console.error("Erreur de lecture :", readError);
+          
+          let remoteBalises = (data && data.balises) ? data.balises : [];
+          let merged = Array.from(new Set([...remoteBalises, ...localTokens]));
+
+          if (token && !merged.includes(token)) {
+            merged.push(token);
+          }
+
+          // 2. Écrire dans la base de données (Upsert)
+          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(merged));
+          const { error: writeError } = await db.from('equipes').upsert({ code_equipe: currentTeam, balises: merged, updated_at: new Date() });
+          
+          if (writeError) {
+             console.error("Erreur d'écriture Supabase :", writeError);
+          }
+
+          synchroStatus.innerText = "CONNECTÉ";
+          synchroStatus.classList.add('online');
+          updateUI(merged);
+
+          // 3. Écoute du Temps Réel
+          if (activeChannel) {
+             db.removeChannel(activeChannel); // Nettoie l'ancien canal si on a changé de nom d'équipe
+          }
+
+          activeChannel = db.channel(`team-${currentTeam}`)
+            // On écoute '*', c'est-à-dire les INSERT (création) ET les UPDATE (modifications)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'equipes', filter: `code_equipe=eq.${currentTeam}` }, (payload) => {
+              console.log("Synchro reçue :", payload);
+              if (payload.new && payload.new.balises) {
+                localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(payload.new.balises));
+                updateUI(payload.new.balises);
+              }
+            })
+            .subscribe((status) => {
+              if(status === 'SUBSCRIBED') {
+                console.log("Connecté au canal en temps réel de l'équipe :", currentTeam);
+              }
+            });
+
+        } catch (e) {
+          console.warn("Erreur globale :", e);
+          synchroStatus.innerText = "SANS LIGNE";
+          synchroStatus.classList.remove('online');
+          if (token && !localTokens.includes(token)) {
+            localTokens.push(token);
+            localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
+          }
+          updateUI(localTokens);
+        }
+
+        // Nettoyer l'URL
+        if (token) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+
+      initSync();
+
+      // Validation finale
+      const validateBtn = document.getElementById('validate-btn');
+      const sentenceInput = document.getElementById('sentence-input');
+      const PHRASE_SECRETE = "L'EAU QUI DORT NE MEURT JAMAIS ELLE ATTEND ICI";
+
+      validateBtn.addEventListener('click', () => {
+        const userText = sentenceInput.value.trim().toUpperCase().replace(/[']/g, "'").replace(/\s+/g, ' ');
+
+        if (userText === PHRASE_SECRETE) {
+          statusMsg.style.color = "#00ff00";
+          statusMsg.innerText = "SERMENT ACCEPTÉ. PASSAGE À L'ACTE II...";
+          setTimeout(() => {
+            window.location.href = "acte2.html";
+          }, 2000);
+        } else {
+          statusMsg.style.color = "#ff3333";
+          statusMsg.innerText = "PHRASE INCORRECTE. L'ESPRIT DU PARC REFUSE CE MOT.";
+        }
+      });
