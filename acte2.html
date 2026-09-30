@@ -13,213 +13,247 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+      :root {
+        --bg-color: #030101;
+        --red-main: #ff0033;
+        --red-glow: rgba(255, 0, 51, 0.6);
+        --green-active: #00ff66;
+      }
+
       body {
         margin: 0;
-        padding: 15px;
-        background-color: #050202;
-        color: #ff3333;
+        padding: 12px;
+        background-color: var(--bg-color);
+        color: var(--red-main);
         font-family: 'Courier New', monospace;
         display: flex;
         flex-direction: column;
         align-items: center;
         min-height: 100vh;
         box-sizing: border-box;
+        overflow-x: hidden;
+      }
+
+      /* Effet Vignettage Cathodique (CRT) */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.9) 100%);
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      /* Lignes de balayage écran */
+      body::after {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%);
+        background-size: 100% 4px;
+        pointer-events: none;
+        z-index: 11;
       }
 
       .container {
         width: 100%;
         max-width: 480px;
-        background: rgba(15, 0, 0, 0.95);
-        border: 1px solid #ff3333;
+        background: rgba(10, 2, 2, 0.95);
+        border: 1px solid var(--red-main);
         padding: 15px;
-        box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
-        border-radius: 6px;
+        box-shadow: 0 0 35px rgba(255, 0, 0, 0.25);
+        border-radius: 4px;
         box-sizing: border-box;
-        transition: transform 0.05s ease;
+        position: relative;
+        z-index: 1;
       }
 
-      /* Effet Shake (Tremblement console) */
-      .shake {
-        animation: shakeAnim 0.4s cubic-bezier(.36,.07,.19,.97) both;
-      }
-
-      @keyframes shakeAnim {
-        10%, 90% { transform: translate3d(-2px, 0, 0); }
-        20%, 80% { transform: translate3d(4px, 0, 0); }
-        30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-        40%, 60% { transform: translate3d(6px, 0, 0); }
-      }
-
+      /* Titre Glitch */
       h1 {
         font-size: 1.1rem;
-        letter-spacing: 2px;
+        letter-spacing: 3px;
         text-align: center;
-        margin-top: 0;
+        margin: 0 0 10px 0;
+        text-shadow: 2px 0 var(--red-main), -2px 0 #800000;
+        text-transform: uppercase;
+      }
+
+      .team-bar {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.7rem;
+        color: #888;
+        border-bottom: 1px solid #330000;
+        padding-bottom: 6px;
         margin-bottom: 12px;
-        text-shadow: 0 0 10px #ff0000;
       }
 
-      .team-info {
-        font-size: 0.75rem;
-        color: #aaa;
-        margin-bottom: 10px;
-        text-align: right;
-      }
-
+      /* Alerte Clignotante Halloween */
       .alert-banner {
-        background: #2a0000;
-        border: 1px solid #ff0000;
-        color: #ff8888;
-        padding: 8px 12px;
-        font-size: 0.75rem;
-        border-radius: 4px;
-        margin-bottom: 15px;
+        background: #1a0003;
+        border: 1px solid var(--red-main);
+        color: #ff9999;
+        padding: 8px 10px;
+        font-size: 0.7rem;
+        border-radius: 3px;
+        margin-bottom: 12px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        animation: pulseAlert 2s infinite;
+      }
+
+      @keyframes pulseAlert {
+        0%, 100% { border-color: var(--red-main); box-shadow: 0 0 5px rgba(255, 0, 0, 0.2); }
+        50% { border-color: #800000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.6); }
       }
 
       .danger-tag {
-        background: #ff0000;
+        background: var(--red-main);
         color: #000;
         font-weight: bold;
-        padding: 2px 6px;
-        border-radius: 2px;
+        padding: 2px 5px;
         font-size: 0.65rem;
       }
 
-      /* Carte & GPS */
+      /* Carte Sombre Stylisée */
       .gps-box {
-        background: #0a0000;
-        border: 1px solid #800000;
-        padding: 10px;
-        margin-bottom: 15px;
-        border-radius: 4px;
+        background: #000;
+        border: 1px solid #550000;
+        padding: 8px;
+        margin-bottom: 12px;
+        border-radius: 3px;
       }
 
       .gps-coords {
-        font-size: 0.75rem;
-        color: #ffaaaa;
+        font-size: 0.7rem;
+        color: #ff8888;
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       #map {
         width: 100%;
         height: 220px;
-        border: 1px solid #ff3333;
-        border-radius: 4px;
-        background: #111;
-        position: relative;
+        border: 1px solid var(--red-main);
+        border-radius: 2px;
+        background: #050505;
+        /* Map sombre style radar */
+        filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(120%);
       }
 
-      /* Onde Sonar sur la Carte */
-      .sonar-wave {
-        border: 2px solid #00ff00;
-        border-radius: 50%;
+      /* Overlay Canvas pour effets spectraux */
+      #fx-canvas {
         position: absolute;
-        background: rgba(0, 255, 0, 0.2);
-        animation: pulseWave 1.8s ease-out infinite;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
         pointer-events: none;
+        z-index: 12;
       }
 
-      @keyframes pulseWave {
-        0% { transform: scale(0.1); opacity: 1; }
-        100% { transform: scale(3.5); opacity: 0; }
-      }
-
-      /* Card Puits Mairie */
+      /* Cible */
       .target-card {
-        background: #100000;
-        border: 1px dashed #ff3333;
+        background: #0d0002;
+        border: 1px dashed var(--red-main);
         padding: 12px;
-        border-radius: 4px;
-        margin-bottom: 15px;
+        border-radius: 3px;
+        margin-bottom: 12px;
         text-align: center;
-        transition: all 0.3s;
+        transition: all 0.4s ease;
       }
 
       .target-card.active {
-        background: #002200;
-        border: 1px solid #00ff00;
-        box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+        background: #001a08;
+        border: 1px solid var(--green-active);
+        box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
       }
 
       .target-title {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: bold;
         color: #fff;
-        margin-bottom: 4px;
       }
 
       .target-gps {
-        font-size: 0.7rem;
-        color: #ff8888;
-        margin-bottom: 8px;
+        font-size: 0.68rem;
+        color: #ff7777;
+        margin: 4px 0 6px 0;
       }
 
       .target-status {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: bold;
-        color: #ff3333;
+        color: var(--red-main);
       }
 
-      /* Terminal avec balayage CRT */
+      /* Console */
       .terminal-box {
         background: #000;
-        border: 1px solid #800000;
-        padding: 12px;
-        min-height: 80px;
-        font-size: 0.8rem;
+        border: 1px solid #440000;
+        padding: 10px;
+        min-height: 75px;
+        font-size: 0.75rem;
         line-height: 1.4;
         color: #ffaaaa;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .terminal-box::after {
-        content: " ";
-        display: block;
-        position: absolute;
-        top: 0; left: 0; bottom: 0; right: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
-        background-size: 100% 4px;
-        pointer-events: none;
+        border-radius: 3px;
+        margin-bottom: 12px;
       }
 
       .action-btn {
-        background: #ff3333;
+        background: var(--red-main);
         color: #000;
         border: none;
-        padding: 12px;
+        padding: 14px;
         font-family: inherit;
         font-weight: bold;
+        font-size: 0.8rem;
         cursor: pointer;
         width: 100%;
-        border-radius: 4px;
+        border-radius: 3px;
         letter-spacing: 1px;
+        box-shadow: 0 0 15px rgba(255, 0, 51, 0.4);
+      }
+
+      .action-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* Animation Shake */
+      .shake {
+        animation: shakeAnim 0.5s cubic-bezier(.36,.07,.19,.97) both;
+      }
+
+      @keyframes shakeAnim {
+        10%, 90% { transform: translate3d(-3px, 0, 0); }
+        20%, 80% { transform: translate3d(5px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+        40%, 60% { transform: translate3d(8px, 0, 0); }
       }
     </style>
   </head>
   <body>
 
+    <!-- Canvas plein écran pour effets de parasites et ondes -->
+    <canvas id="fx-canvas"></canvas>
+
     <div class="container" id="main-container">
       <h1>ACTE II : RÉSEAU SOUTERRAIN</h1>
 
-      <div class="team-info">ÉQUIPE : <strong id="team-name" style="color:#fff;">---</strong></div>
+      <div class="team-bar">
+        <span>31 OCT. — NUIT D'HALLOWEEN</span>
+        <span>ÉQUIPE : <strong id="team-name" style="color:#fff;">---</strong></span>
+      </div>
 
       <div class="alert-banner">
-        <span>ANOMALIE RÉSEAU DÉTECTÉE</span>
-        <span class="danger-tag">DANGER : MODÉRÉ</span>
+        <span>ANOMALIE ANCESTRALE DÉTECTÉE</span>
+        <span class="danger-tag">DANGER : ÉLEVÉ</span>
       </div>
 
       <!-- Carte & GPS -->
       <div class="gps-box">
         <div class="gps-coords">
-          <span id="gps-status">GPS : RECHERCHE...</span>
+          <span id="gps-status">GPS : ACQUISITION...</span>
           <span id="gps-acc"></span>
         </div>
         <div id="map"></div>
@@ -227,17 +261,17 @@
 
       <!-- Cible Puits Mairie -->
       <div class="target-card" id="target-card">
-        <div class="target-title">2. PUITS MAIRIE</div>
+        <div class="target-title">2. PUITS MAIRIE (RÉSEAU ANCIEN)</div>
         <div class="target-gps">N 47° 11,085' E 2° 36,823'</div>
         <div class="target-status" id="target-status">SIGNAL NON DÉTECTÉ</div>
       </div>
 
       <!-- Console réseau -->
       <div class="terminal-box" id="terminal">
-        <em>Approchez-vous du Puits de la Mairie et scannez la puce NFC pour analyser le réseau souterrain...</em>
+        <span id="terminal-content">Approchez-vous du Puits de la Mairie et scannez le sceau NFC pour ouvrir le canal souterrain...</span>
       </div>
 
-      <button class="action-btn" id="trigger-strobo-btn" style="display:none;">DÉCLENCHER L'IMPULSION SOUTERRAINE</button>
+      <button class="action-btn" id="trigger-strobo-btn" style="display:none;">ÉMETTRE L'IMPULSION SPECTRALE</button>
     </div>
 
     <script>
@@ -258,18 +292,16 @@
         gpsStr: "N 47° 11,085' E 2° 36,823'"
       };
 
-      // 3. CARTE LEAFLET
-      const map = L.map('map').setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(map);
+      // 3. CARTE LEAFLET SOMBRE
+      const map = L.map('map', { zoomControl: false }).setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
       const targetMarker = L.circleMarker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], {
-        color: '#ff0000',
-        fillColor: '#ff0000',
-        fillOpacity: 0.8,
-        radius: 10
-      }).addTo(map).bindPopup(`<b>${PUITS_MAIRIE.name}</b><br><small>${PUITS_MAIRIE.gpsStr}</small>`);
+        color: '#ff0033',
+        fillColor: '#ff0033',
+        fillOpacity: 0.9,
+        radius: 8
+      }).addTo(map);
 
       let playerMarker = null;
 
@@ -282,80 +314,155 @@
           document.getElementById('gps-acc').innerText = `±${Math.round(pos.coords.accuracy)}m`;
 
           if (!playerMarker) {
-            playerMarker = L.marker([lat, lng]).addTo(map).bindPopup("<b>POSITION JOUEUR</b>");
+            playerMarker = L.circleMarker([lat, lng], {
+              color: '#00ffff',
+              fillColor: '#00ffff',
+              fillOpacity: 1,
+              radius: 6
+            }).addTo(map);
           } else {
             playerMarker.setLatLng([lat, lng]);
           }
         }, null, { enableHighAccuracy: true });
       }
 
-      // 5. MOTEUR D'IMPULSION IMMERSIVE (AUDIO + VIBRATION + SHAKE + SONAR)
-      function playImpulseSound() {
+      // 5. DESIGN AUDIO HALLOWEEN (Synthesizer Web Audio API)
+      function playEerieImpulseSound() {
         try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(60, audioCtx.currentTime); // Basse fréquence 60Hz
-          osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 1.2);
+          // A. Sub-bass Ground Rumble (Grondeur Souterrain)
+          const subOsc = ctx.createOscillator();
+          const subGain = ctx.createGain();
+          subOsc.type = 'sine';
+          subOsc.frequency.setValueAtTime(40, ctx.currentTime);
+          subOsc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 1.8);
 
-          gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.4);
+          subGain.gain.setValueAtTime(0.8, ctx.currentTime);
+          subGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
 
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
+          subOsc.connect(subGain);
+          subGain.connect(ctx.destination);
+          subOsc.start();
+          subOsc.stop(ctx.currentTime + 2.0);
 
-          osc.start();
-          osc.stop(audioCtx.currentTime + 1.4);
+          // B. Parasites radio / Glitch Noise
+          const bufferSize = ctx.sampleRate * 0.5;
+          const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const output = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+          }
+
+          const whiteNoise = ctx.createBufferSource();
+          whiteNoise.buffer = noiseBuffer;
+          const noiseGain = ctx.createGain();
+          noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
+          noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+          whiteNoise.connect(noiseGain);
+          noiseGain.connect(ctx.destination);
+          whiteNoise.start();
+
         } catch (e) {
-          console.log("Audio non actif");
+          console.log("Audio désactivé ou bloqué par le navigateur");
         }
       }
 
-      function triggerAdvancedImpulse() {
-        // Vibration haptique
+      // 6. ANIMATION VISUELLE CANVAS (Effet d'Onde & Parasites)
+      const canvas = document.getElementById('fx-canvas');
+      const ctxCanvas = canvas.getContext('2d');
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      let fxActive = false;
+      let waveRadius = 0;
+
+      function triggerCanvasFX() {
+        fxActive = true;
+        waveRadius = 0;
+        let frames = 0;
+
+        function animate() {
+          if (!fxActive) return;
+          ctxCanvas.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Parasites Glitch
+          ctxCanvas.fillStyle = 'rgba(255, 0, 51, 0.15)';
+          for (let i = 0; i < 15; i++) {
+            const y = Math.random() * canvas.height;
+            const h = Math.random() * 6;
+            ctxCanvas.fillRect(0, y, canvas.width, h);
+          }
+
+          // Onde de choc rouge
+          ctxCanvas.beginPath();
+          ctxCanvas.arc(canvas.width / 2, canvas.height / 2, waveRadius, 0, Math.PI * 2);
+          ctxCanvas.strokeStyle = `rgba(255, 0, 51, ${1 - waveRadius / (canvas.width * 0.8)})`;
+          ctxCanvas.lineWidth = 4;
+          ctxCanvas.stroke();
+
+          waveRadius += 12;
+          frames++;
+
+          if (waveRadius < canvas.width * 0.8) {
+            requestAnimationFrame(animate);
+          } else {
+            ctxCanvas.clearRect(0, 0, canvas.width, canvas.height);
+            fxActive = false;
+          }
+        }
+        animate();
+      }
+
+      // 7. DÉCLENCHEMENT GLOBAL DE L'IMPULSION
+      function runFullHalloweenSequence() {
         if ("vibrate" in navigator) {
-          navigator.vibrate([100, 50, 100, 50, 400]);
+          navigator.vibrate([150, 40, 150, 40, 600]);
         }
 
-        // Son synthétisé
-        playImpulseSound();
+        playEerieImpulseSound();
+        triggerCanvasFX();
 
-        // Screen Shake
         const container = document.getElementById('main-container');
         container.classList.add('shake');
-        setTimeout(() => container.classList.remove('shake'), 400);
-
-        // Onde Sonar sur la carte
-        const sonarMarker = L.marker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], {
-          icon: L.divIcon({
-            className: 'sonar-wave',
-            iconSize: [60, 60],
-            iconAnchor: [30, 30]
-          })
-        }).addTo(map);
-
-        setTimeout(() => {
-          map.removeLayer(sonarMarker);
-        }, 5000);
+        setTimeout(() => container.classList.remove('shake'), 500);
       }
 
-      // 6. VALIDATION ET SYNCHRO SUPABASE
+      // 8. EFFET MACHINES À ÉCRIRE POUR LA CONSOLE
+      function typeWriter(text, elementId, speed = 25) {
+        const el = document.getElementById(elementId);
+        el.innerHTML = "";
+        let i = 0;
+        function type() {
+          if (i < text.length) {
+            el.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(type, speed);
+          }
+        }
+        type();
+      }
+
+      // 9. VALIDATION & SYNCHRO SUPABASE
       const targetCard = document.getElementById('target-card');
       const targetStatus = document.getElementById('target-status');
-      const terminal = document.getElementById('terminal');
       const stroboBtn = document.getElementById('trigger-strobo-btn');
 
       async function validatePuitsMairie() {
         targetCard.classList.add('active');
-        targetStatus.innerText = "CAPTURÉ — PROTOCOLE NFC VALIDE";
-        targetStatus.style.color = "#00ff00";
+        targetStatus.innerText = "SCEAU DÉVERROUILLÉ — RÉSEAU ACTIF";
+        targetStatus.style.color = "#00ff66";
 
-        terminal.innerHTML = `<strong>ANALYSE DU RÉSEAU SOUTERRAIN :</strong><br>Puce NFC identifiée.<br>Première impulsion transmise avec succès.`;
+        typeWriter("ANOMALIE SOUTERRAINE DÉTECTÉE.\n> Connexion au réseau des anciens puits établie.\n> Première impulsion spectrale émise.", "terminal-content");
 
         stroboBtn.style.display = "block";
-        triggerAdvancedImpulse();
+        runFullHalloweenSequence();
 
         // Enregistrement
         try {
@@ -369,11 +476,11 @@
             updated_at: new Date().toISOString()
           });
         } catch (e) {
-          console.error("Erreur d'enregistrement Supabase :", e);
+          console.error("Erreur Supabase :", e);
         }
       }
 
-      // 7. DÉTECTION NFC (?token=puits_mairie)
+      // 10. LECTURE DU SCAN NFC (?token=puits_mairie)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
@@ -383,8 +490,9 @@
       }
 
       stroboBtn.addEventListener('click', () => {
-        triggerAdvancedImpulse();
-        terminal.innerHTML += `<br><span style="color:#00ff00;">> IMPULSION RÉÉMISE DANS LE RÉSEAU.</span>`;
+        runFullHalloweenSequence();
+        const terminalContent = document.getElementById('terminal-content');
+        terminalContent.innerHTML += `<br><span style="color:#00ff66;">> ONDE RE-SOUFFLÉE DANS LE RÉSEAU SOUTERRAIN.</span>`;
       });
     </script>
   </body>
