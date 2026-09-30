@@ -82,6 +82,12 @@
         cursor: pointer;
       }
 
+      .reset-btn {
+        background: #440000 !important;
+        color: #ffaaaa !important;
+        border: 1px solid #800000 !important;
+      }
+
       .status-line {
         font-size: 0.75rem;
         color: #888;
@@ -247,6 +253,7 @@
         <div class="team-inputs">
           <input type="text" id="team-code-input" placeholder="EX: TEAM1" />
           <button id="set-team-btn">OK</button>
+          <button id="reset-team-btn" class="reset-btn" title="Réinitialiser les captures de cette équipe">RÉINIT</button>
         </div>
         <div class="status-line">
           <span>SYNCHRO SUPABASE :</span>
@@ -272,7 +279,7 @@
         </div>
         <div class="card" id="card-2">
           <div class="card-title">PUITS ÉGLISE</div>
-          <div class="card-gps">N 47° 11,110'<br>E 2° 36,828'</div>
+          <div class="card-gps">N 47° 11,151'<br>E 2° 36,800'</div>
           <div class="card-status" id="status-2">ABSENT</div>
         </div>
         <div class="card" id="card-3">
@@ -307,6 +314,7 @@
       let currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
       const teamInput = document.getElementById('team-code-input');
       const setTeamBtn = document.getElementById('set-team-btn');
+      const resetTeamBtn = document.getElementById('reset-team-btn');
       const synchroStatus = document.getElementById('synchro-status');
 
       teamInput.value = currentTeam;
@@ -321,6 +329,21 @@
         }
       });
 
+      // Bouton de réinitialisation locale + Supabase
+      resetTeamBtn.addEventListener('click', async () => {
+        if (confirm(`Voulez-vous réinitialiser les balises de l'équipe ${currentTeam} ?`)) {
+          localStorage.removeItem(`rians_tokens_${currentTeam}`);
+          try {
+            await db.from('equipes').upsert({
+              code_equipe: currentTeam,
+              balises: [],
+              updated_at: new Date().toISOString()
+            });
+          } catch(e) {}
+          updateUI([]);
+        }
+      });
+
       // 3. COORDONNÉES GPS EXACTES ET MAPPING FRAGMENTS
       const BALISE_POSITIONS = {
         'balise1': { 
@@ -332,9 +355,9 @@
         },
         'balise2': { 
           name: "PUITS ÉGLISE", 
-          gps: "N 47° 11,110' E 2° 36,828'",
-          lat: 47.185167, 
-          lng: 2.613800, 
+          gps: "N 47° 11,151' E 2° 36,800'",
+          lat: 47.185850, 
+          lng: 2.613333, 
           fragment: "2. NE MEURT JAMAIS" 
         },
         'balise3': { 
@@ -346,8 +369,8 @@
         }
       };
 
-      // 4. INITIALISATION CARTE (Centrée sur l'Église de Rians)
-      const map = L.map('map').setView([47.18545, 2.61340], 18);
+      // 4. INITIALISATION CARTE
+      const map = L.map('map').setView([47.18565, 2.61325], 18);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(map);
@@ -412,7 +435,7 @@
       const display = document.getElementById('fragments-display');
       const puzzleSection = document.getElementById('puzzle-section');
 
-      // FILTRE STRICT ANTI-BUG (Garantit uniquement balise1, balise2, balise3)
+      // FILTRE STRICT ANTI-BUG
       function parseAndCleanBalises(input) {
         let rawArray = [];
         if (!input) rawArray = [];
