@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Acte IV - Le Calvaire (GPS & Morse)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tactical: {
+                            dark: '#050b14',
+                            card: '#0a1628',
+                            border: '#1e3a8a',
+                            neon: '#00ffcc',
+                            alert: '#ff3366'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glow-box { box-shadow: 0 0 15px rgba(0, 255, 204, 0.15); }
+        .glow-text { text-shadow: 0 0 10px rgba(0, 255, 204, 0.5); }
+    </style>
+</head>
+<body class="bg-tactical-dark text-slate-100 min-h-screen flex flex-col justify-between p-4 font-mono select-none overflow-x-hidden">
+
+    <!-- En-tête mission -->
+    <header class="w-full max-w-md mx-auto bg-tactical-card border border-tactical-border rounded-xl p-4 glow-box">
+        <div class="flex justify-between items-center text-xs text-blue-400 mb-1">
+            <span>SITE : LE CALVAIRE</span>
+            <span id="connectionStatus" class="text-yellow-400 animate-pulse">● RECHERCHE GPS...</span>
+        </div>
+        <h1 class="text-xl font-bold tracking-wider text-white uppercase glow-text">ACTE IV : Le Calvaire</h1>
+        
+        <!-- Panneau des coordonnées visibles -->
+        <div class="mt-2 p-2 bg-black/40 border border-blue-900/60 rounded-lg text-xs space-y-1">
+            <div class="flex justify-between text-gray-400">
+                <span>Cible GPS :</span>
+                <span class="text-cyan-400 font-bold">N 47° 10,758' E 2° 36,733'</span>
+            </div>
+            <div class="flex justify-between text-gray-400">
+                <span>Votre Position :</span>
+                <span id="userCoords" class="text-yellow-400">Acquisition...</span>
+            </div>
+            <div class="flex justify-between text-gray-400 border-t border-blue-900/40 pt-1">
+                <span>Distance au site :</span>
+                <span id="distanceDisplay" class="font-bold text-white">Calcul en cours...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Écran de Géofencing (Verrouillé si > 15m) -->
+    <div id="lockScreen" class="w-full max-w-md mx-auto my-4 flex-1 flex flex-col justify-center items-center text-center p-6 bg-slate-950 border-2 border-yellow-600/50 rounded-2xl">
+        <div class="text-5xl mb-4 animate-bounce">📍</div>
+        <h2 class="text-lg font-bold text-yellow-400 uppercase tracking-widest mb-2">Zone sous haute surveillance</h2>
+        <p class="text-xs text-gray-300 leading-relaxed mb-6">
+            Le protocole technique de l'Acte IV nécessite que votre équipe se trouve à proximité immédiate du socle en pierre du Calvaire (<span class="text-cyan-400 font-bold">moins de 15 mètres</span>).
+        </p>
+        
+        <div class="w-full bg-slate-900 p-3 rounded-xl border border-slate-800 mb-6">
+            <span class="text-[10px] text-gray-500 block uppercase">Statut du Périmètre</span>
+            <span id="proximityStatusText" class="text-sm font-bold text-yellow-400">Rapprochez-vous de la balise...</span>
+        </div>
+
+        <!-- Bouton de secours / Simulation pour tests hors-site -->
+        <button onclick="overrideProximity()" class="text-[10px] text-blue-400 hover:text-cyan-300 underline tracking-wider uppercase">
+            [Mode Test] Forcer l'accès (Simulation sur site)
+        </button>
+    </div>
+
+    <!-- Zone principale du Mini-Jeu (Masquée tant que non déverrouillé) -->
+    <main id="gameMain" class="w-full max-w-md mx-auto my-4 flex-1 flex flex-col justify-center items-center hidden opacity-0 transition-opacity duration-500">
+        
+        <!-- Boîtier oscilloscope -->
+        <div class="w-full bg-slate-950 border-2 border-tactical-neon rounded-2xl p-4 shadow-inner relative flex flex-col items-center">
+            <div class="absolute top-2 left-3 text-[10px] text-gray-500 tracking-widest">OSCILLOSCOPE QUANTIQUE v4.2</div>
+            
+            <canvas id="oscCanvas" width="320" height="120" class="w-full h-32 my-2 bg-black/60 rounded border border-blue-900/50"></canvas>
+            
+            <!-- Pattern cible visuel -->
+            <div class="w-full mt-2 bg-slate-900 p-2 rounded border border-slate-800 text-center">
+                <span class="text-xs text-gray-400 block mb-1">MOTIF TACTIQUE REQUIS :</span>
+                <div id="targetPatternDisplay" class="flex justify-center items-center gap-2 text-sm font-bold text-yellow-400 tracking-widest">
+                    <span>●</span><span>—</span><span>●</span><span>●</span>
+                </div>
+                <span class="text-[10px] text-gray-500">(Court — Long — Court — Court)</span>
+            </div>
+
+            <div id="statusMsg" class="mt-4 text-xs font-bold tracking-widest uppercase text-cyan-400 animate-pulse">
+                EN ATTENTE D'IMPULSION...
+            </div>
+        </div>
+
+        <!-- Feedback visuel des frappes -->
+        <div class="w-full flex justify-center gap-2 mt-4" id="tapsIndicator">
+            <div class="w-6 h-6 rounded-full border border-gray-600 bg-slate-900 flex items-center justify-center text-xs text-gray-600 tap-slot">1</div>
+            <div class="w-6 h-6 rounded-full border border-gray-600 bg-slate-900 flex items-center justify-center text-xs text-gray-600 tap-slot">2</div>
+            <div class="w-6 h-6 rounded-full border border-gray-600 bg-slate-900 flex items-center justify-center text-xs text-gray-600 tap-slot">3</div>
+            <div class="w-6 h-6 rounded-full border border-gray-600 bg-slate-900 flex items-center justify-center text-xs text-gray-600 tap-slot">4</div>
+        </div>
+    </main>
+
+    <!-- Bouton d'action principal -->
+    <footer id="gameFooter" class="w-full max-w-md mx-auto hidden">
+        <button id="transmitBtn" 
+                class="w-full py-5 bg-gradient-to-r from-blue-700 via-indigo-700 to-emerald-700 hover:from-blue-600 hover:to-emerald-600 active:scale-95 text-white font-black text-lg tracking-widest uppercase rounded-2xl border border-tactical-neon glow-box transition-all duration-150 flex items-center justify-center gap-3 shadow-2xl">
+            <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            TRANSMETTRE IMPULSION
+        </button>
+        <div class="text-center mt-3 text-[11px] text-gray-500">
+            Appuyez en rythme. Tolérance de précision : ± 35%
+        </div>
+    </footer>
+
+    <!-- Écran de Succès -->
+    <div id="successModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden flex flex-col items-center justify-center p-6 z-50">
+        <div class="bg-tactical-card border-2 border-tactical-neon p-6 rounded-2xl max-w-sm w-full text-center glow-box">
+            <div class="text-4xl mb-2">🔓</div>
+            <h2 class="text-xl font-bold text-white tracking-wider uppercase glow-text">Bouclier Désactivé !</h2>
+            <p class="text-sm text-gray-300 mt-2">
+                La fréquence de résonance du Calvaire a été synchronisée avec succès.
+            </p>
+            <div class="my-4 p-3 bg-black/50 border border-tactical-neon/40 rounded-lg">
+                <span class="text-xs text-gray-400 block">COORDONNÉES DE L'ACTE SUIVANT :</span>
+                <span class="text-lg font-bold text-yellow-400 tracking-wider">N 47° 11.102' E 2° 37.014'</span>
+            </div>
+            <button onclick="location.reload()" class="w-full py-3 bg-tactical-neon text-tactical-dark font-bold uppercase rounded-xl tracking-wider hover:bg-emerald-400 transition-colors">
+                Recharger le Protocole
+            </button>
+        </div>
+    </div>
+
+    <!-- Script de Géolocalisation et Morse Tactique -->
+    <script>
+        // Coordonnées cibles du Calvaire (N 47° 10,758' E 2° 36,733' converties en décimales)
+        const TARGET_LAT = 47.179300;
+        const TARGET_LNG = 2.612216;
+        const PROXIMITY_THRESHOLD_METERS = 15;
+        let isUnlocked = false;
+
+        // Calculateur de distance Haversine
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Rayon de la Terre en mètres
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c; // Distance en mètres
+        }
+
+        // Suivi GPS en temps réel
+        function initGPS() {
+            if (!navigator.geolocation) {
+                document.getElementById('userCoords').textContent = "GPS non supporté";
+                document.getElementById('proximityStatusText').textContent = "Mode simulation requis (GPS indisponible)";
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    const distance = calculateDistance(userLat, userLng, TARGET_LAT, TARGET_LNG);
+
+                    document.getElementById('userCoords').textContent = `${userLat.toFixed(4)}°, ${userLng.toFixed(4)}°`;
+                    document.getElementById('distanceDisplay').textContent = `${Math.round(distance)} mètres`;
+
+                    if (distance <= PROXIMITY_THRESHOLD_METERS && !isUnlocked) {
+                        unlockStage();
+                    } else if (!isUnlocked) {
+                        document.getElementById('proximityStatusText').textContent = `Trop loin (${Math.round(distance)}m). Approchez-vous à moins de 15m.`;
+                    }
+                },
+                (error) => {
+                    console.warn("Erreur GPS:", error.message);
+                    document.getElementById('userCoords').textContent = "Signal GPS bloqué";
+                    document.getElementById('proximityStatusText').textContent = "Impossible de capter le signal. Utilisez le mode test.";
+                },
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+            );
+        }
+
+        function unlockStage() {
+            if (isUnlocked) return;
+            isUnlocked = true;
+            document.getElementById('connectionStatus').textContent = "● ZONE SÉCURISÉE";
+            document.getElementById('connectionStatus').className = "text-emerald-400 font-bold";
+            
+            document.getElementById('lockScreen').classList.add('hidden');
+            const gameMain = document.getElementById('gameMain');
+            const gameFooter = document.getElementById('gameFooter');
+            
+            gameMain.classList.remove('hidden');
+            gameFooter.classList.remove('hidden');
+            setTimeout(() => gameMain.classList.remove('opacity-0'), 50);
+        }
+
+        function overrideProximity() {
+            unlockStage();
+        }
+
+        // --- AUDIO & LOGIQUE MORSE ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep(duration = 150, freq = 750) {
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration / 1000));
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + (duration / 1000));
+            } catch(e) { console.log(e); }
+        }
+
+        const targetPattern = [1, 3, 1, 1]; // Court, Long, Court, Court
+        let userTaps = [];
+        let pressStartTime = 0;
+        let canvas = document.getElementById('oscCanvas');
+        let ctx = canvas.getContext('2d');
+        
+        let wavePhase = 0;
+        function drawOscilloscope(active = false, alert = false) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = alert ? '#ff3366' : (active ? '#00ffcc' : '#1e3a8a');
+            
+            ctx.beginPath();
+            let sliceWidth = canvas.width / 100;
+            let x = 0;
+            
+            for (let i = 0; i < 100; i++) {
+                let v = Math.sin((i + wavePhase) * 0.1);
+                let y = (canvas.height / 2) + (v * (active ? 35 : 10) * Math.random());
+                if (active) y += (Math.random() - 0.5) * 20;
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+            wavePhase += active ? 0.8 : 0.2;
+            requestAnimationFrame(() => drawOscilloscope(active, alert));
+        }
+        drawOscilloscope(false);
+
+        const transmitBtn = document.getElementById('transmitBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const tapSlots = document.querySelectorAll('.tap-slot');
+
+        function handlePressStart(e) {
+            e.preventDefault();
+            pressStartTime = Date.now();
+            drawOscilloscope(true);
+            playBeep(50, 750);
+            transmitBtn.classList.add('bg-slate-800');
+        }
+
+        function handlePressEnd(e) {
+            e.preventDefault();
+            if (!pressStartTime) return;
+            let pressDuration = Date.now() - pressStartTime;
+            pressStartTime = 0;
+            drawOscilloscope(false);
+            transmitBtn.classList.remove('bg-slate-800');
+
+            let tapType = pressDuration > 450 ? 3 : 1;
+            userTaps.push(tapType);
+
+            updateSlots();
+            playBeep(tapType === 3 ? 400 : 150, tapType === 3 ? 600 : 800);
+
+            if (userTaps.length === targetPattern.length) {
+                checkPattern();
+            }
+        }
+
+        function updateSlots() {
+            tapSlots.forEach((slot, idx) => {
+                if (idx < userTaps.length) {
+                    slot.classList.remove('border-gray-600', 'bg-slate-900', 'text-gray-600');
+                    if (userTaps[idx] === 3) {
+                        slot.classList.add('border-yellow-400', 'bg-yellow-900/40', 'text-yellow-400');
+                        slot.textContent = '—';
+                    } else {
+                        slot.classList.add('border-tactical-neon', 'bg-cyan-950', 'text-tactical-neon');
+                        slot.textContent = '●';
+                    }
+                } else {
+                    slot.classList.remove('border-yellow-400', 'bg-yellow-900/40', 'text-yellow-400', 'border-tactical-neon', 'bg-cyan-950', 'text-tactical-neon');
+                    slot.classList.add('border-gray-600', 'bg-slate-900', 'text-gray-600');
+                    slot.textContent = idx + 1;
+                }
+            });
+        }
+
+        function checkPattern() {
+            let match = true;
+            for (let i = 0; i < targetPattern.length; i++) {
+                if (userTaps[i] !== targetPattern[i]) { match = false; break; }
+            }
+
+            if (match) {
+                statusMsg.textContent = "SYNCHRONISATION RÉUSSIE !";
+                statusMsg.className = "mt-4 text-xs font-bold tracking-widest uppercase text-emerald-400";
+                setTimeout(() => {
+                    document.getElementById('successModal').classList.remove('hidden');
+                }, 600);
+            } else {
+                statusMsg.textContent = "ERREUR DE FRÉQUENCE - RECOMMENCEZ";
+                statusMsg.className = "mt-4 text-xs font-bold tracking-widest uppercase text-tactical-alert";
+                drawOscilloscope(false, true);
+                
+                setTimeout(() => {
+                    userTaps = [];
+                    updateSlots();
+                    statusMsg.textContent = "EN ATTENTE D'IMPULSION...";
+                    statusMsg.className = "mt-4 text-xs font-bold tracking-widest uppercase text-cyan-400";
+                }, 1200);
+            }
+        }
+
+        transmitBtn.addEventListener('mousedown', handlePressStart);
+        transmitBtn.addEventListener('mouseup', handlePressEnd);
+        transmitBtn.addEventListener('touchstart', handlePressStart);
+        transmitBtn.addEventListener('touchend', handlePressEnd);
+
+        window.onload = initGPS;
+    </script>
+</body>
+</html>
