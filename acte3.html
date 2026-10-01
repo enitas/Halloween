@@ -3,14 +3,13 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta charset="utf-8" />
-    <title>ACTE III — PONT OUATIER [HAUTE TENSION]</title>
+    <title>ACTE III — PONT OUATIER</title>
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-    <!-- CDN Librairies -->
+    <!-- Librairies FaceMesh, Gsap, Howler, Supabase, Leaflet -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -23,298 +22,96 @@
       :root {
         --red-blood: #ff0033;
         --green-spectral: #00ff66;
-        --bg-void: #020102;
+        --bg-void: #050203;
         --border-hud: rgba(255, 0, 51, 0.45);
       }
-
       * { box-sizing: border-box; user-select: none; }
-
       body {
-        margin: 0;
-        padding: 10px;
-        background-color: var(--bg-void);
-        color: #ffcccc;
-        font-family: 'Share Tech Mono', monospace;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        overflow-x: hidden;
+        margin: 0; padding: 10px; background-color: var(--bg-void); color: #ffcccc;
+        font-family: 'Share Tech Mono', monospace; display: flex; flex-direction: column; align-items: center;
+        min-height: 100vh; overflow-x: hidden;
       }
-
       .crt-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.96) 100%),
-                    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%);
-        background-size: 100% 100%, 100% 4px;
-        pointer-events: none;
-        z-index: 100;
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.92) 100%), linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+        background-size: 100% 100%, 100% 4px; pointer-events: none; z-index: 100;
       }
-
+      
       .hud-container {
-        width: 100%;
-        max-width: 480px;
-        background: rgba(10, 2, 4, 0.94);
-        border: 1px solid var(--border-hud);
-        box-shadow: 0 0 35px rgba(255, 0, 51, 0.25), inset 0 0 15px rgba(255, 0, 51, 0.1);
-        padding: 14px;
-        border-radius: 4px;
-        position: relative;
-        z-index: 10;
-        margin-top: 5px;
+        width: 100%; max-width: 480px; background: rgba(12, 3, 5, 0.95);
+        border: 1px solid var(--border-hud); box-shadow: 0 0 25px rgba(255, 0, 51, 0.2); padding: 14px;
+        border-radius: 4px; position: relative; z-index: 10; margin-top: 5px;
       }
-
-      .corner-tl, .corner-tr, .corner-bl, .corner-br {
-        position: absolute;
-        width: 12px; height: 12px;
-        border-color: var(--red-blood);
-        border-style: solid;
-        pointer-events: none;
+      .header-title { font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.1rem; color: #fff; text-shadow: 0 0 10px var(--red-blood); text-align: center; letter-spacing: 2px; margin: 0 0 4px 0; }
+      .header-sub { font-family: 'Orbitron', sans-serif; font-size: 0.62rem; color: var(--red-blood); display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255, 0, 51, 0.25); padding-bottom: 5px; margin-bottom: 10px; }
+      
+      /* GEOFENCE OVERLAY (Bloque le jeu) */
+      .geofence-lock {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(5, 2, 3, 0.95); z-index: 50; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 20px; border-radius: 4px;
       }
-      .corner-tl { top: -1px; left: -1px; border-width: 3px 0 0 3px; }
-      .corner-tr { top: -1px; right: -1px; border-width: 3px 3px 0 0; }
-      .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 3px 3px; }
-      .corner-br { bottom: -1px; right: -1px; border-width: 0 3px 3px 0; }
-
-      .header-title {
-        font-family: 'Cinzel', serif;
-        font-weight: 900;
-        font-size: 1.1rem;
-        color: #fff;
-        text-shadow: 0 0 10px var(--red-blood), 0 0 20px var(--red-blood);
-        text-align: center;
-        letter-spacing: 2px;
-        margin: 0 0 4px 0;
-      }
-
-      .header-sub {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.62rem;
-        color: var(--red-blood);
-        text-align: center;
-        letter-spacing: 2px;
-        margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
-        border-bottom: 1px solid rgba(255, 0, 51, 0.25);
-        padding-bottom: 5px;
-      }
+      .geofence-title { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; color: var(--red-blood); margin-bottom: 10px; text-shadow: 0 0 10px red; }
+      .geofence-dist { font-size: 1.5rem; font-weight: bold; color: #fff; margin: 15px 0; }
+      .geofence-desc { font-size: 0.8rem; color: #ff9999; }
 
       .danger-banner {
-        background: rgba(255, 0, 51, 0.2);
-        border: 1px solid var(--red-blood);
-        color: #ffffff;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.65rem;
-        font-weight: bold;
-        text-align: center;
-        padding: 6px;
-        letter-spacing: 1px;
-        border-radius: 3px;
-        margin-bottom: 12px;
-        animation: pulse-danger 1.5s infinite alternate;
+        background: rgba(255, 0, 51, 0.2); border: 1px solid var(--red-blood); color: #ffffff;
+        font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: bold; text-align: center;
+        padding: 6px; letter-spacing: 1px; border-radius: 3px; margin-bottom: 12px; animation: pulse-danger 1.5s infinite alternate;
       }
+      @keyframes pulse-danger { 0% { box-shadow: 0 0 4px rgba(255,0,51,0.3); } 100% { box-shadow: 0 0 16px rgba(255,0,51,0.8); } }
 
-      @keyframes pulse-danger {
-        0% { box-shadow: 0 0 4px rgba(255,0,51,0.3); }
-        100% { box-shadow: 0 0 16px rgba(255,0,51,0.8); }
+      /* Caméra propre avec LASER PREMIUM */
+      .camera-box { position: relative; width: 100%; height: 180px; background: #000; border: 1px solid var(--border-hud); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+      #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: grayscale(0.2) contrast(1.1); }
+      .cam-overlay-info { position: absolute; top: 8px; left: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.58rem; background: rgba(0,0,0,0.7); border: 1px solid var(--red-blood); color: #fff; padding: 3px 6px; border-radius: 2px; z-index: 15; }
+      .eye-status-badge { position: absolute; bottom: 8px; right: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: bold; padding: 4px 8px; border-radius: 3px; background: rgba(0, 255, 102, 0.25); border: 1px solid var(--green-spectral); color: var(--green-spectral); z-index: 15; }
+      .eye-status-badge.alert { background: rgba(255, 0, 51, 0.4); border-color: var(--red-blood); color: #ffffff; }
+      
+      /* Laser holographique CSS */
+      .laser-scanner {
+        position: absolute; left: 0; width: 100%; height: 2px;
+        background: rgba(0, 255, 102, 0.8);
+        box-shadow: 0 0 15px 3px rgba(0, 255, 102, 0.5);
+        animation: scan-vertical 3s infinite linear; z-index: 10;
       }
+      .laser-scanner.alert-mode { background: rgba(255, 0, 51, 0.8); box-shadow: 0 0 15px 3px rgba(255, 0, 51, 0.5); }
+      @keyframes scan-vertical { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 
-      .camera-box {
-        position: relative;
-        width: 100%;
-        height: 180px;
-        background: #000;
-        border: 1px solid var(--border-hud);
-        border-radius: 3px;
-        overflow: hidden;
-        margin-bottom: 12px;
-      }
+      .bridge-progress-box { background: rgba(15, 2, 5, 0.9); border: 1px solid var(--border-hud); padding: 8px 10px; border-radius: 3px; margin-bottom: 12px; }
+      .bridge-title { display: flex; justify-content: space-between; font-family: 'Orbitron', sans-serif; font-size: 0.62rem; color: #ffcccc; margin-bottom: 4px; }
+      .bridge-bar { width: 100%; height: 12px; background: rgba(255, 0, 51, 0.15); border: 1px solid rgba(255, 0, 51, 0.4); border-radius: 2px; overflow: hidden; }
+      .bridge-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ff0033, #00ff66); box-shadow: 0 0 10px var(--red-blood); transition: width 0.3s ease; }
 
-      #webcam {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transform: scaleX(-1);
-        filter: grayscale(0.8) contrast(1.4) sepia(0.5) hue-rotate(300deg);
-      }
+      .map-wrapper { position: relative; border: 1px solid var(--border-hud); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+      .map-header { background: rgba(255, 0, 51, 0.12); padding: 4px 8px; font-size: 0.65rem; display: flex; justify-content: space-between; color: #ff9999; border-bottom: 1px solid var(--border-hud); }
+      #map { width: 100%; height: 120px; background: #09090b; } 
 
-      .cam-overlay-info {
-        position: absolute;
-        top: 8px; left: 8px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.58rem;
-        background: rgba(0,0,0,0.7);
-        border: 1px solid var(--red-blood);
-        color: #fff;
-        padding: 3px 6px;
-        border-radius: 2px;
-      }
+      .puzzle-box { background: rgba(20, 3, 6, 0.85); border: 1px dashed var(--red-blood); padding: 10px; border-radius: 3px; margin-bottom: 12px; }
+      .puzzle-title { font-family: 'Orbitron', sans-serif; font-size: 0.72rem; font-weight: bold; color: #fff; margin-bottom: 4px; }
+      .puzzle-desc { font-size: 0.68rem; color: #ffaaaa; margin-bottom: 8px; }
+      .input-wrapper { display: flex; gap: 8px; }
+      .rambarde-input { flex: 1; background: #000; border: 1px solid var(--red-blood); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; padding: 8px; border-radius: 3px; text-align: center; }
+      .btn-validate { background: var(--red-blood); color: #fff; border: none; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: bold; padding: 0 14px; border-radius: 3px; cursor: pointer; }
 
-      .eye-status-badge {
-        position: absolute;
-        bottom: 8px; right: 8px;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.65rem;
-        font-weight: bold;
-        padding: 4px 8px;
-        border-radius: 3px;
-        background: rgba(0, 255, 102, 0.25);
-        border: 1px solid var(--green-spectral);
-        color: var(--green-spectral);
-      }
-
-      .eye-status-badge.alert {
-        background: rgba(255, 0, 51, 0.4);
-        border-color: var(--red-blood);
-        color: #ffffff;
-      }
-
-      .bridge-progress-box {
-        background: rgba(15, 2, 5, 0.9);
-        border: 1px solid var(--border-hud);
-        padding: 8px 10px;
-        border-radius: 3px;
-        margin-bottom: 12px;
-      }
-
-      .bridge-title {
-        display: flex;
-        justify-content: space-between;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.62rem;
-        color: #ffcccc;
-        margin-bottom: 4px;
-      }
-
-      .bridge-bar {
-        width: 100%;
-        height: 12px;
-        background: rgba(255, 0, 51, 0.15);
-        border: 1px solid rgba(255, 0, 51, 0.4);
-        border-radius: 2px;
-        overflow: hidden;
-      }
-
-      .bridge-fill {
-        height: 100%;
-        width: 0%;
-        background: linear-gradient(90deg, #ff0033, #00ff66);
-        box-shadow: 0 0 10px var(--red-blood);
-        transition: width 0.3s ease;
-      }
-
-      .map-wrapper {
-        position: relative;
-        border: 1px solid var(--border-hud);
-        border-radius: 3px;
-        overflow: hidden;
-        margin-bottom: 12px;
-      }
-
-      .map-header {
-        background: rgba(255, 0, 51, 0.12);
-        padding: 4px 8px;
-        font-size: 0.65rem;
-        display: flex;
-        justify-content: space-between;
-        color: #ff9999;
-        border-bottom: 1px solid var(--border-hud);
-      }
-
-      #map {
-        width: 100%;
-        height: 140px;
-        background: #050102;
-      }
-
-      .leaflet-tile {
-        filter: brightness(0.4) invert(1) contrast(1.8) hue-rotate(320deg) saturate(2.5) !important;
-      }
-
-      .puzzle-box {
-        background: rgba(20, 3, 6, 0.85);
-        border: 1px dashed var(--red-blood);
-        padding: 10px;
-        border-radius: 3px;
-        margin-bottom: 12px;
-      }
-
-      .puzzle-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.72rem;
-        font-weight: bold;
-        color: #fff;
-        margin-bottom: 4px;
-      }
-
-      .puzzle-desc {
-        font-size: 0.68rem;
-        color: #ffaaaa;
-        margin-bottom: 8px;
-      }
-
-      .input-wrapper {
-        display: flex;
-        gap: 8px;
-      }
-
-      .rambarde-input {
-        flex: 1;
-        background: #000;
-        border: 1px solid var(--red-blood);
-        color: #fff;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.9rem;
-        padding: 8px;
-        border-radius: 3px;
-        text-align: center;
-      }
-
-      .btn-validate {
-        background: var(--red-blood);
-        color: #fff;
-        border: none;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 0.75rem;
-        font-weight: bold;
-        padding: 0 14px;
-        border-radius: 3px;
-        cursor: pointer;
-      }
-
-      .terminal-box {
-        background: #000;
-        border: 1px solid rgba(255, 0, 51, 0.3);
-        padding: 10px;
-        min-height: 55px;
-        font-size: 0.7rem;
-        line-height: 1.35;
-        color: #ff9999;
-        border-radius: 3px;
-      }
-
-      .flash-screen {
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #ff0000;
-        opacity: 0;
-        pointer-events: none;
-        z-index: 200;
-      }
+      .terminal-box { background: #000; border: 1px solid rgba(255, 0, 51, 0.3); padding: 10px; min-height: 55px; font-size: 0.7rem; line-height: 1.4; color: #00ff66; border-radius: 3px; font-weight: bold; }
+      .flash-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; opacity: 0; pointer-events: none; z-index: 200; }
     </style>
   </head>
   <body>
-
     <div class="crt-overlay"></div>
     <div class="flash-screen" id="flash"></div>
 
     <div class="hud-container" id="hud">
-      <div class="corner-tl"></div>
-      <div class="corner-tr"></div>
-      <div class="corner-bl"></div>
-      <div class="corner-br"></div>
+      
+      <!-- ÉCRAN DE BLOCAGE GPS -->
+      <div class="geofence-lock" id="geofence-screen">
+        <div class="geofence-title">⚠️ VERROUILLAGE GÉOGRAPHIQUE</div>
+        <div class="geofence-desc">Le protocole de l'Acte III exige votre présence absolue sur le lieu exact : PONT DE L'OUATIER (N 47° 11.218' E 2° 36.750').</div>
+        <div class="geofence-dist" id="geofence-dist-text">DISTANCE : CALCUL...</div>
+        <div class="geofence-desc">L'interface se débloquera automatiquement à moins de 15 mètres du pont. Avancez.</div>
+      </div>
 
       <div class="header-title">ACTE III : LE PONT OUATIER</div>
       <div class="header-sub">
@@ -322,12 +119,19 @@
         <span>SECTEUR 03 — DANGER CRITIQUE</span>
       </div>
 
-      <div class="danger-banner">
-        ⚠️ ANOMALIE : HAUTE TENSION SPECTRALE — DÉFENSE DE BAISSER LES YEUX !
+      <div class="terminal-box" id="terminal">
+        <div id="terminal-content">
+          [Bip de validation système — Chronomètre désactivé]<br><br>
+          ACCÈS AUTORISÉ. LOCALISATION CONFIRMÉE : PONT DE L'OUATIER.<br>
+          Il ne faut pas lambiner, votre mission n'est pas encore finie.
+        </div>
       </div>
+
+      <div class="danger-banner">⚠ ANOMALIE : DÉFENSE DE BAISSER LES YEUX !</div>
 
       <div class="camera-box">
         <div class="cam-overlay-info">FACE-TRACKING WebAR : ACTIF</div>
+        <div class="laser-scanner" id="laser"></div>
         <video id="webcam" autoplay playsinline muted></video>
         <div class="eye-status-badge" id="eye-badge">REGARD : ALIGNÉ</div>
       </div>
@@ -344,7 +148,7 @@
 
       <div class="map-wrapper">
         <div class="map-header">
-          <span id="gps-status">GPS : RECHERCHE PONT...</span>
+          <span id="gps-status">GPS : RECHERCHE...</span>
           <span id="gps-acc">±--m</span>
         </div>
         <div id="map"></div>
@@ -352,148 +156,183 @@
 
       <div class="puzzle-box" id="puzzle-box">
         <div class="puzzle-title">PROTOCOLE COÉQUIPIERS : VALEUR SPECTRALE</div>
-        <div class="puzzle-desc">
-          Comptez le nombre total de rambardes du Pont Ouatier et multipliez-le par <strong>3,2</strong> (sans calculatrice !).
-        </div>
+        <div class="puzzle-desc">Comptez le nombre total de rambardes du Pont Ouatier et multipliez-le par <strong>3,2</strong> (sans calculatrice !).</div>
         <div class="input-wrapper">
           <input type="number" step="0.1" class="rambarde-input" id="rambarde-val" placeholder="Résultat..." />
           <button class="btn-validate" id="btn-valide">VALIDER</button>
         </div>
       </div>
 
-      <div class="terminal-box" id="terminal">
-        <div id="terminal-content">> Autorisez la caméra frontale. Gardez la tête haute pendant la traversée...</div>
-      </div>
     </div>
 
     <script>
       const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
       const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
       const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
       const currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
-      const PONT_OUATIER = { lat: 47.186967, lng: 2.612417 };
+      
+      // Coordonnées exactes (N 47° 11.218' E 2° 36.750' = 47.186967, 2.612500)
+      const PONT_OUATIER = { lat: 47.186967, lng: 2.612500 };
 
       const soundScream = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'], volume: 0.9 });
       const soundSuccess = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'], volume: 1.0 });
 
-      const videoElement = document.getElementById('webcam');
-      const eyeBadge = document.getElementById('eye-badge');
-      const bridgeFill = document.getElementById('bridge-fill');
-      const bridgePercent = document.getElementById('bridge-percent');
-
-      let bridgeProgress = 0;
-      let isBridgeCompleted = false;
-      let isHeadDown = false;
-
-      const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-      faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
-      faceMesh.onResults(onFaceResults);
-
-      function onFaceResults(results) {
-        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
-        const landmarks = results.multiFaceLandmarks[0];
-        
-        const noseY = landmarks[1].y;
-        const chinY = landmarks[152].y;
-        const foreheadY = landmarks[10].y;
-        const faceHeight = Math.abs(chinY - foreheadY);
-        const noseRelativePos = (noseY - foreheadY) / faceHeight;
-
-        if (noseRelativePos > 0.62 || foreheadY > 0.35) {
-          if (!isHeadDown && !isBridgeCompleted) {
-            isHeadDown = true;
-            eyeBadge.classList.add('alert');
-            eyeBadge.innerText = "RÉINITIALISATION : YEUX BAISSÉS !";
-            soundScream.play();
-            if ('vibrate' in navigator) navigator.vibrate([200, 50, 200]);
-
-            bridgeProgress = 0;
-            bridgeFill.style.width = '0%';
-            bridgePercent.innerText = '0%';
-            gsap.to("#flash", { opacity: 0.9, duration: 0.1, yoyo: true, repeat: 3 });
-            document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! Progression réinitialisée !";
-          }
-        } else {
-          if (isHeadDown) {
-            isHeadDown = false;
-            eyeBadge.classList.remove('alert');
-            eyeBadge.innerText = "REGARD : ALIGNÉ";
-          }
-        }
+      // MATH : Distance de Haversine
+      function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Rayon de la terre en mètres
+        const p1 = lat1 * Math.PI/180;
+        const p2 = lat2 * Math.PI/180;
+        const dp = (lat2-lat1) * Math.PI/180;
+        const dl = (lon2-lon1) * Math.PI/180;
+        const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
       }
 
-      const camera = new Camera(videoElement, {
-        onFrame: async () => { await faceMesh.send({ image: videoElement }); },
-        width: 480, height: 360, facingMode: 'user'
-      });
-      camera.start().catch(() => {});
+      // ETAT DU JEU
+      let isGeofenceUnlocked = false; // Bloque le tracker au départ
+      let bridgeProgress = 0, isBridgeCompleted = false, isHeadDown = false;
+      let cameraInstance = null;
 
-      setInterval(() => {
-        if (!isHeadDown && !isBridgeCompleted && bridgeProgress < 100) {
-          bridgeProgress += 2.5;
-          if (bridgeProgress > 100) bridgeProgress = 100;
-          bridgeFill.style.width = `${bridgeProgress}%`;
-          bridgePercent.innerText = `${Math.round(bridgeProgress)}%`;
-
-          if (bridgeProgress === 100) {
-            isBridgeCompleted = true;
-            eyeBadge.innerText = "TRAVERSÉE SÉCURISÉE";
-            soundSuccess.play();
-            document.getElementById('terminal-content').innerText = "> SUCCÈS : Pont Ouatier franchi ! Entrez la valeur des rambardes pour sceller l'Acte III.";
-          }
-        }
-      }, 1000);
-
-      // Carte Leaflet
+      // CARTE (CartoDB Dark)
       const map = L.map('map', { zoomControl: false }).setView([PONT_OUATIER.lat, PONT_OUATIER.lng], 18);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: 'OSM' }).addTo(map);
-
-      const pontIcon = L.divIcon({
-        className: 'custom-pont-icon',
-        html: `<div style="width:16px;height:16px;background:#ff0033;border-radius:50%;box-shadow:0 0 15px #ff0033;border:2px solid #fff;"></div>`,
-        iconSize: [16, 16], iconAnchor: [8, 8]
-      });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, subdomains: 'abcd' }).addTo(map);
+      const pontIcon = L.divIcon({ className: 'custom-pont-icon', html: `<div style="width:14px;height:14px;background:#00ff66;border-radius:50%;box-shadow:0 0 10px #00ff66;border:2px solid #fff;"></div>`, iconSize: [14, 14] });
       L.marker([PONT_OUATIER.lat, PONT_OUATIER.lng], { icon: pontIcon }).addTo(map);
 
       let playerMarker = null;
+
+      // GPS SURVEILLANCE CONSTANTE
       if ('geolocation' in navigator) {
         navigator.geolocation.watchPosition((pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
+          const lat = pos.coords.latitude; const lng = pos.coords.longitude;
+          const accuracy = Math.round(pos.coords.accuracy);
+          
           document.getElementById('gps-status').innerText = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-          document.getElementById('gps-acc').innerText = `±${Math.round(pos.coords.accuracy)}m`;
+          document.getElementById('gps-acc').innerText = `±${accuracy}m`;
 
           if (!playerMarker) {
-            playerMarker = L.circleMarker([lat, lng], { color: '#00ff66', fillColor: '#00ff66', fillOpacity: 1, radius: 5 }).addTo(map);
+            playerMarker = L.circleMarker([lat, lng], { color: '#ff0033', fillColor: '#ff0033', fillOpacity: 1, radius: 5 }).addTo(map);
           } else {
             playerMarker.setLatLng([lat, lng]);
           }
-        }, null, { enableHighAccuracy: true });
+
+          const distanceMeters = Math.round(getDistanceFromLatLonInM(lat, lng, PONT_OUATIER.lat, PONT_OUATIER.lng));
+          
+          if (!isGeofenceUnlocked) {
+            document.getElementById('geofence-dist-text').innerText = `DISTANCE : ${distanceMeters} m`;
+            // DÉBLOCAGE SI DISTANCE < 15 Mètres
+            if (distanceMeters <= 15) {
+              isGeofenceUnlocked = true;
+              document.getElementById('geofence-screen').style.display = 'none';
+              soundSuccess.play();
+              startFaceTracker(); // On démarre la caméra et le jeu uniquement à ce moment
+            }
+          }
+
+        }, (err) => { console.warn("GPS Error", err); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+      } else {
+        document.getElementById('geofence-dist-text').innerText = "GPS NON SUPPORTÉ";
       }
 
+      // FACE TRACKING 
+      function startFaceTracker() {
+        const videoElement = document.getElementById('webcam');
+        const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
+        
+        faceMesh.onResults((results) => {
+          if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+          const landmarks = results.multiFaceLandmarks[0];
+          
+          const noseY = landmarks[1].y, chinY = landmarks[152].y, foreheadY = landmarks[10].y;
+          const faceHeight = Math.abs(chinY - foreheadY);
+          const noseRelativePos = (noseY - foreheadY) / faceHeight;
+
+          // Tête baissée
+          if (noseRelativePos > 0.62 || foreheadY > 0.35) {
+            if (!isHeadDown && !isBridgeCompleted) {
+              isHeadDown = true;
+              document.getElementById('eye-badge').classList.add('alert');
+              document.getElementById('eye-badge').innerText = "YEUX BAISSÉS !";
+              document.getElementById('laser').classList.add('alert-mode');
+              soundScream.play();
+              if ('vibrate' in navigator) navigator.vibrate([200, 50, 200]);
+
+              bridgeProgress = 0;
+              document.getElementById('bridge-fill').style.width = '0%';
+              document.getElementById('bridge-percent').innerText = '0%';
+              gsap.to("#flash", { opacity: 0.9, duration: 0.1, yoyo: true, repeat: 3 });
+              
+              document.getElementById('terminal-content').style.color = "#ff0033";
+              document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! L'anomalie s'approche. Recommencez !";
+            }
+          } else {
+            if (isHeadDown) {
+              isHeadDown = false;
+              document.getElementById('eye-badge').classList.remove('alert');
+              document.getElementById('eye-badge').innerText = "REGARD : ALIGNÉ";
+              document.getElementById('laser').classList.remove('alert-mode');
+              
+              document.getElementById('terminal-content').style.color = "#ff9999";
+              document.getElementById('terminal-content').innerText = "> Gardez la tête haute devant la caméra pendant la traversée du pont...";
+            }
+          }
+        });
+
+        cameraInstance = new Camera(videoElement, { onFrame: async () => { await faceMesh.send({ image: videoElement }); }, width: 480, height: 360, facingMode: 'user' });
+        cameraInstance.start().catch(() => {});
+
+        // Progression de la barre
+        setInterval(() => {
+          if (!isHeadDown && !isBridgeCompleted && bridgeProgress < 100) {
+            bridgeProgress += 2.5; // Fini en 40s
+            if (bridgeProgress > 100) bridgeProgress = 100;
+            document.getElementById('bridge-fill').style.width = `${bridgeProgress}%`;
+            document.getElementById('bridge-percent').innerText = `${Math.round(bridgeProgress)}%`;
+
+            if (bridgeProgress === 100) {
+              isBridgeCompleted = true;
+              document.getElementById('eye-badge').innerText = "TRAVERSÉE SÉCURISÉE";
+              document.getElementById('eye-badge').style.background = "rgba(0,255,102,0.8)";
+              document.getElementById('laser').style.display = "none";
+              soundSuccess.play();
+              document.getElementById('terminal-content').style.color = "#00ff66";
+              document.getElementById('terminal-content').innerText = "> SUCCÈS : Pont franchi. Entrez le calcul des rambardes pour sceller l'Acte III.";
+            }
+          }
+        }, 1000);
+      }
+
+      // FIN D'ACTE 3
       document.getElementById('btn-valide').addEventListener('click', async () => {
         const val = parseFloat(document.getElementById('rambarde-val').value.replace(',', '.'));
-        if (isNaN(val)) return alert("Veuillez entrer un nombre valide !");
+        if (isNaN(val)) return alert("Veuillez entrer un nombre valide.");
 
         soundSuccess.play();
         document.getElementById('puzzle-box').style.borderColor = "var(--green-spectral)";
-        document.getElementById('terminal-content').innerText = `> VALEUR SPECTRALE [${val}] CONFIRMÉE !\n> ACTE III TERMINÉ !`;
+        document.getElementById('terminal-content').innerText = `> VALEUR SPECTRALE [${val}] CONFIRMÉE !\n> ACTE III TERMINÉ ! SAUVEGARDE EN COURS...`;
 
         try {
           let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
           if (!localTokens.includes('pont_ouatier')) localTokens.push('pont_ouatier');
           localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
 
-          await db.from('equipes').upsert({
-            code_equipe: currentTeam,
-            acte3_balises: localTokens,
-            acte3_cleared: true,
-            updated_at: new Date().toISOString()
-          });
-        } catch (e) {
-          console.error(e);
-        }
+          await db.from('equipes').upsert({ code_equipe: currentTeam, acte3_balises: localTokens, acte3_cleared: true, updated_at: new Date().toISOString() });
+          
+          setTimeout(() => { alert("L'acte 3 est validé et enregistré !"); }, 2000);
+        } catch (e) { console.error(e); }
+      });
+      
+      // CHEAT POUR DÉVELOPPEUR (Cliques 5 fois sur le titre pour passer le GPS pendant tes tests)
+      let cheatClicks = 0;
+      document.querySelector('.geofence-title').addEventListener('click', () => {
+          cheatClicks++;
+          if (cheatClicks >= 5) {
+              isGeofenceUnlocked = true;
+              document.getElementById('geofence-screen').style.display = 'none';
+              startFaceTracker();
+          }
       });
     </script>
   </body>
