@@ -3,294 +3,496 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta charset="utf-8" />
-    <title>L'Écho de l'Eau Morte - Traqueur GPS</title>
+    <title>ACTE III — PONT OUATIER [HAUTE TENSION]</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- CDN Librairies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
+      :root {
+        --red-blood: #ff0033;
+        --green-spectral: #00ff66;
+        --bg-void: #020102;
+        --border-hud: rgba(255, 0, 51, 0.45);
+      }
+
+      * { box-sizing: border-box; user-select: none; }
+
       body {
         margin: 0;
-        padding: 15px;
-        background-color: #050202;
-        color: #ff3333;
-        font-family: 'Courier New', monospace;
+        padding: 10px;
+        background-color: var(--bg-void);
+        color: #ffcccc;
+        font-family: 'Share Tech Mono', monospace;
         display: flex;
         flex-direction: column;
         align-items: center;
         min-height: 100vh;
-        box-sizing: border-box;
+        overflow-x: hidden;
       }
 
-      .container {
+      .crt-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.96) 100%),
+                    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%);
+        background-size: 100% 100%, 100% 4px;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      .hud-container {
         width: 100%;
-        max-width: 420px;
-        background: rgba(15, 0, 0, 0.95);
-        border: 1px solid #ff3333;
-        padding: 20px;
-        box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
-        border-radius: 6px;
-        box-sizing: border-box;
-        text-align: center;
-      }
-
-      h2 {
-        font-size: 1.2rem;
-        letter-spacing: 2px;
-        margin-top: 0;
-        margin-bottom: 10px;
-        text-shadow: 0 0 8px #ff0000;
-      }
-
-      .intro-text {
-        font-size: 0.8rem;
-        color: #bbb;
-        line-height: 1.4;
-        margin-bottom: 20px;
-      }
-
-      /* Section Carte / Radar GPS */
-      .radar-section {
-        background: #000;
-        border: 1px solid #660000;
-        padding: 12px;
+        max-width: 480px;
+        background: rgba(10, 2, 4, 0.94);
+        border: 1px solid var(--border-hud);
+        box-shadow: 0 0 35px rgba(255, 0, 51, 0.25), inset 0 0 15px rgba(255, 0, 51, 0.1);
+        padding: 14px;
         border-radius: 4px;
-        margin-bottom: 20px;
-        text-align: left;
+        position: relative;
+        z-index: 10;
+        margin-top: 5px;
       }
 
-      .radar-title {
-        font-size: 0.75rem;
-        color: #ff6666;
-        letter-spacing: 1px;
-        border-bottom: 1px solid #330000;
-        padding-bottom: 5px;
-        margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
+      .corner-tl, .corner-tr, .corner-bl, .corner-br {
+        position: absolute;
+        width: 12px; height: 12px;
+        border-color: var(--red-blood);
+        border-style: solid;
+        pointer-events: none;
       }
+      .corner-tl { top: -1px; left: -1px; border-width: 3px 0 0 3px; }
+      .corner-tr { top: -1px; right: -1px; border-width: 3px 3px 0 0; }
+      .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 3px 3px; }
+      .corner-br { bottom: -1px; right: -1px; border-width: 0 3px 3px 0; }
 
-      .signal-card {
-        background: #0c0202;
-        border: 1px solid #331111;
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 3px;
-        transition: all 0.3s ease;
-      }
-
-      .signal-card.found {
-        border-color: #00ff00;
-        background: #001100;
-      }
-
-      .signal-header {
-        display: flex;
-        justify-content: space-between;
-        font-weight: bold;
-        font-size: 0.85rem;
-      }
-
-      .signal-gps {
-        font-size: 0.75rem;
-        color: #ffaaaa;
-        margin-top: 4px;
-      }
-
-      .signal-card.found .signal-gps {
-        color: #88ff88;
-      }
-
-      .gps-link {
-        display: inline-block;
-        margin-top: 6px;
-        font-size: 0.7rem;
-        color: #ff3333;
-        text-decoration: underline;
-      }
-
-      /* Zone Fragments */
-      .fragment-box {
-        margin: 15px 0;
-        padding: 12px;
-        background: #110000;
-        border: 1px dashed #800000;
-        font-size: 0.85rem;
-        color: #ffaaaa;
-        min-height: 40px;
-      }
-
-      input[type="text"] {
-        width: 100%;
-        background: #000;
-        border: 1px solid #ff3333;
-        color: #ff3333;
-        padding: 10px;
-        font-family: inherit;
-        font-size: 0.85rem;
-        text-align: center;
-        margin-bottom: 15px;
-        text-transform: uppercase;
-        box-sizing: border-box;
-      }
-
-      .btn {
-        background: linear-gradient(135deg, #800000, #330000);
+      .header-title {
+        font-family: 'Cinzel', serif;
+        font-weight: 900;
+        font-size: 1.1rem;
         color: #fff;
-        border: 1px solid #ff3333;
-        padding: 12px 20px;
-        font-family: inherit;
-        font-weight: bold;
-        cursor: pointer;
-        letter-spacing: 1px;
-        width: 100%;
+        text-shadow: 0 0 10px var(--red-blood), 0 0 20px var(--red-blood);
+        text-align: center;
+        letter-spacing: 2px;
+        margin: 0 0 4px 0;
       }
 
-      #status-msg {
-        margin-top: 10px;
-        font-size: 0.8rem;
+      .header-sub {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.62rem;
+        color: var(--red-blood);
+        text-align: center;
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 0, 51, 0.25);
+        padding-bottom: 5px;
+      }
+
+      .danger-banner {
+        background: rgba(255, 0, 51, 0.2);
+        border: 1px solid var(--red-blood);
+        color: #ffffff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.65rem;
         font-weight: bold;
+        text-align: center;
+        padding: 6px;
+        letter-spacing: 1px;
+        border-radius: 3px;
+        margin-bottom: 12px;
+        animation: pulse-danger 1.5s infinite alternate;
+      }
+
+      @keyframes pulse-danger {
+        0% { box-shadow: 0 0 4px rgba(255,0,51,0.3); }
+        100% { box-shadow: 0 0 16px rgba(255,0,51,0.8); }
+      }
+
+      .camera-box {
+        position: relative;
+        width: 100%;
+        height: 180px;
+        background: #000;
+        border: 1px solid var(--border-hud);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      #webcam {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+        filter: grayscale(0.8) contrast(1.4) sepia(0.5) hue-rotate(300deg);
+      }
+
+      .cam-overlay-info {
+        position: absolute;
+        top: 8px; left: 8px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.58rem;
+        background: rgba(0,0,0,0.7);
+        border: 1px solid var(--red-blood);
+        color: #fff;
+        padding: 3px 6px;
+        border-radius: 2px;
+      }
+
+      .eye-status-badge {
+        position: absolute;
+        bottom: 8px; right: 8px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.65rem;
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 3px;
+        background: rgba(0, 255, 102, 0.25);
+        border: 1px solid var(--green-spectral);
+        color: var(--green-spectral);
+      }
+
+      .eye-status-badge.alert {
+        background: rgba(255, 0, 51, 0.4);
+        border-color: var(--red-blood);
+        color: #ffffff;
+      }
+
+      .bridge-progress-box {
+        background: rgba(15, 2, 5, 0.9);
+        border: 1px solid var(--border-hud);
+        padding: 8px 10px;
+        border-radius: 3px;
+        margin-bottom: 12px;
+      }
+
+      .bridge-title {
+        display: flex;
+        justify-content: space-between;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.62rem;
+        color: #ffcccc;
+        margin-bottom: 4px;
+      }
+
+      .bridge-bar {
+        width: 100%;
+        height: 12px;
+        background: rgba(255, 0, 51, 0.15);
+        border: 1px solid rgba(255, 0, 51, 0.4);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .bridge-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #ff0033, #00ff66);
+        box-shadow: 0 0 10px var(--red-blood);
+        transition: width 0.3s ease;
+      }
+
+      .map-wrapper {
+        position: relative;
+        border: 1px solid var(--border-hud);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      .map-header {
+        background: rgba(255, 0, 51, 0.12);
+        padding: 4px 8px;
+        font-size: 0.65rem;
+        display: flex;
+        justify-content: space-between;
+        color: #ff9999;
+        border-bottom: 1px solid var(--border-hud);
+      }
+
+      #map {
+        width: 100%;
+        height: 140px;
+        background: #050102;
+      }
+
+      .leaflet-tile {
+        filter: brightness(0.4) invert(1) contrast(1.8) hue-rotate(320deg) saturate(2.5) !important;
+      }
+
+      .puzzle-box {
+        background: rgba(20, 3, 6, 0.85);
+        border: 1px dashed var(--red-blood);
+        padding: 10px;
+        border-radius: 3px;
+        margin-bottom: 12px;
+      }
+
+      .puzzle-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.72rem;
+        font-weight: bold;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+
+      .puzzle-desc {
+        font-size: 0.68rem;
+        color: #ffaaaa;
+        margin-bottom: 8px;
+      }
+
+      .input-wrapper {
+        display: flex;
+        gap: 8px;
+      }
+
+      .rambarde-input {
+        flex: 1;
+        background: #000;
+        border: 1px solid var(--red-blood);
+        color: #fff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9rem;
+        padding: 8px;
+        border-radius: 3px;
+        text-align: center;
+      }
+
+      .btn-validate {
+        background: var(--red-blood);
+        color: #fff;
+        border: none;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.75rem;
+        font-weight: bold;
+        padding: 0 14px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      .terminal-box {
+        background: #000;
+        border: 1px solid rgba(255, 0, 51, 0.3);
+        padding: 10px;
+        min-height: 55px;
+        font-size: 0.7rem;
+        line-height: 1.35;
+        color: #ff9999;
+        border-radius: 3px;
+      }
+
+      .flash-screen {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #ff0000;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 200;
       }
     </style>
   </head>
   <body>
 
-    <div class="container">
-      <h2>LE SERMENT DU PARC</h2>
-      <div class="intro-text">
-        Trois balises NFC ont été scellées autour de l'église. Utilisez les coordonnées ci-dessous pour localiser chaque signal et scanner son empreinte.
+    <div class="crt-overlay"></div>
+    <div class="flash-screen" id="flash"></div>
+
+    <div class="hud-container" id="hud">
+      <div class="corner-tl"></div>
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+      <div class="corner-br"></div>
+
+      <div class="header-title">ACTE III : LE PONT OUATIER</div>
+      <div class="header-sub">
+        <span>31 OCT. // RIANS</span>
+        <span>SECTEUR 03 — DANGER CRITIQUE</span>
       </div>
 
-      <!-- RADAR / CARTE TACTIQUE GPS -->
-      <div class="radar-section">
-        <div class="radar-title">
-          <span>RADAR TACTIQUE</span>
-          <span id="signals-count">0/3 REÇUS</span>
-        </div>
+      <div class="danger-banner">
+        ⚠️ ANOMALIE : HAUTE TENSION SPECTRALE — DÉFENSE DE BAISSER LES YEUX !
+      </div>
 
-        <!-- Signal 1 -->
-        <div class="signal-card" id="card-1">
-          <div class="signal-header">
-            <span>SIGNAL #1 : LE BANC</span>
-            <span id="status-1" style="color:#ff3333;">EN ATTENTE</span>
-          </div>
-          <div class="signal-gps">📍 N 47° 11.147' E 2° 36.788'</div>
-          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185783,2.613133" target="_blank">Ouvrir dans Google Maps 🗺️</a>
-        </div>
+      <div class="camera-box">
+        <div class="cam-overlay-info">FACE-TRACKING WebAR : ACTIF</div>
+        <video id="webcam" autoplay playsinline muted></video>
+        <div class="eye-status-badge" id="eye-badge">REGARD : ALIGNÉ</div>
+      </div>
 
-        <!-- Signal 2 -->
-        <div class="signal-card" id="card-2">
-          <div class="signal-header">
-            <span>SIGNAL #2 : LE MURET / PARC</span>
-            <span id="status-2" style="color:#ff3333;">EN ATTENTE</span>
-          </div>
-          <div class="signal-gps">📍 N 47° 11.140' E 2° 36.793'</div>
-          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185667,2.613217" target="_blank">Ouvrir dans Google Maps 🗺️</a>
+      <div class="bridge-progress-box">
+        <div class="bridge-title">
+          <span>STABILITÉ DE LA TRAVERSÉE</span>
+          <span id="bridge-percent">0%</span>
         </div>
-
-        <!-- Signal 3 -->
-        <div class="signal-card" id="card-3">
-          <div class="signal-header">
-            <span>SIGNAL #3 : LE PUITS</span>
-            <span id="status-3" style="color:#ff3333;">EN ATTENTE</span>
-          </div>
-          <div class="signal-gps">📍 N 47° 11.110' E 2° 36.828'</div>
-          <a class="gps-link" href="https://www.google.com/maps/search/?api=1&query=47.185167,2.613800" target="_blank">Ouvrir dans Google Maps 🗺️</a>
+        <div class="bridge-bar">
+          <div class="bridge-fill" id="bridge-fill"></div>
         </div>
       </div>
 
-      <!-- ZONE DE RESTITUTION DE LA PHRASE -->
-      <div class="fragment-box" id="fragments-display">
-        Chargement des signaux...
+      <div class="map-wrapper">
+        <div class="map-header">
+          <span id="gps-status">GPS : RECHERCHE PONT...</span>
+          <span id="gps-acc">±--m</span>
+        </div>
+        <div id="map"></div>
       </div>
 
-      <div id="puzzle-section" style="display: none;">
-        <p style="font-size: 0.75rem; color: #ff9999;">Reconstituez la phrase complète du serment :</p>
-        <input type="text" id="sentence-input" placeholder="ENTREZ LA PHRASE DU SERMENT..." />
-        <button class="btn" id="validate-btn">SCELLER LE PARC</button>
+      <div class="puzzle-box" id="puzzle-box">
+        <div class="puzzle-title">PROTOCOLE COÉQUIPIERS : VALEUR SPECTRALE</div>
+        <div class="puzzle-desc">
+          Comptez le nombre total de rambardes du Pont Ouatier et multipliez-le par <strong>3,2</strong> (sans calculatrice !).
+        </div>
+        <div class="input-wrapper">
+          <input type="number" step="0.1" class="rambarde-input" id="rambarde-val" placeholder="Résultat..." />
+          <button class="btn-validate" id="btn-valide">VALIDER</button>
+        </div>
       </div>
 
-      <div id="status-msg"></div>
+      <div class="terminal-box" id="terminal">
+        <div id="terminal-content">> Autorisez la caméra frontale. Gardez la tête haute pendant la traversée...</div>
+      </div>
     </div>
 
     <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
+      const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Récupération des fragments stockés
-      let collectedTokens = JSON.parse(localStorage.getItem('rians_tokens') || '[]');
+      const currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
+      const PONT_OUATIER = { lat: 47.186967, lng: 2.612417 };
 
-      if (token && !collectedTokens.includes(token)) {
-        collectedTokens.push(token);
-        localStorage.setItem('rians_tokens', JSON.stringify(collectedTokens));
-        // Nettoie l'URL pour la clarté
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+      const soundScream = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'], volume: 0.9 });
+      const soundSuccess = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'], volume: 1.0 });
 
-      // Mise à jour visuelle des cartes GPS et des fragments
-      const card1 = document.getElementById('card-1');
-      const card2 = document.getElementById('card-2');
-      const card3 = document.getElementById('card-3');
-      
-      const status1 = document.getElementById('status-1');
-      const status2 = document.getElementById('status-2');
-      const status3 = document.getElementById('status-3');
+      const videoElement = document.getElementById('webcam');
+      const eyeBadge = document.getElementById('eye-badge');
+      const bridgeFill = document.getElementById('bridge-fill');
+      const bridgePercent = document.getElementById('bridge-percent');
 
-      const countDisplay = document.getElementById('signals-count');
-      const display = document.getElementById('fragments-display');
-      const puzzleSection = document.getElementById('puzzle-section');
+      let bridgeProgress = 0;
+      let isBridgeCompleted = false;
+      let isHeadDown = false;
 
-      let fragmentsText = [];
+      const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+      faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
+      faceMesh.onResults(onFaceResults);
 
-      if (collectedTokens.includes('balise1')) {
-        card1.classList.add('found');
-        status1.innerText = "CAPTURES";
-        status1.style.color = "#00ff00";
-        fragmentsText.push("1. L'EAU QUI DORT");
-      }
+      function onFaceResults(results) {
+        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+        const landmarks = results.multiFaceLandmarks[0];
+        
+        const noseY = landmarks[1].y;
+        const chinY = landmarks[152].y;
+        const foreheadY = landmarks[10].y;
+        const faceHeight = Math.abs(chinY - foreheadY);
+        const noseRelativePos = (noseY - foreheadY) / faceHeight;
 
-      if (collectedTokens.includes('balise2')) {
-        card2.classList.add('found');
-        status2.innerText = "CAPTURES";
-        status2.style.color = "#00ff00";
-        fragmentsText.push("2. NE MEURT JAMAIS");
-      }
+        if (noseRelativePos > 0.62 || foreheadY > 0.35) {
+          if (!isHeadDown && !isBridgeCompleted) {
+            isHeadDown = true;
+            eyeBadge.classList.add('alert');
+            eyeBadge.innerText = "RÉINITIALISATION : YEUX BAISSÉS !";
+            soundScream.play();
+            if ('vibrate' in navigator) navigator.vibrate([200, 50, 200]);
 
-      if (collectedTokens.includes('balise3')) {
-        card3.classList.add('found');
-        status3.innerText = "CAPTURES";
-        status3.style.color = "#00ff00";
-        fragmentsText.push("3. ELLE ATTEND ICI");
-      }
-
-      countDisplay.innerText = `${collectedTokens.length}/3 CAPTURE(S)`;
-
-      if (fragmentsText.length > 0) {
-        display.innerHTML = `<strong>FRAGMENTS DE VOIX DÉCRYPTÉS :</strong><br><br>` + fragmentsText.join('<br>');
-      } else {
-        display.innerHTML = "<em>Aucun fragment détecté. Approchez-vous d'une balise NFC et scannez-la avec votre téléphone.</em>";
-      }
-
-      if (collectedTokens.length === 3) {
-        puzzleSection.style.display = 'block';
-      }
-
-      // Validation de la phrase finale
-      const validateBtn = document.getElementById('validate-btn');
-      const sentenceInput = document.getElementById('sentence-input');
-      const statusMsg = document.getElementById('status-msg');
-
-      const PHRASE_SECRETE = "L'EAU QUI DORT NE MEURT JAMAIS ELLE ATTEND ICI";
-
-      validateBtn.addEventListener('click', () => {
-        const userText = sentenceInput.value.trim().toUpperCase().replace(/[']/g, "'").replace(/\s+/g, ' ');
-
-        if (userText === PHRASE_SECRETE) {
-          statusMsg.style.color = "#00ff00";
-          statusMsg.innerText = "SCEAU VALIDÉ. REDIRECTION VERS LE PONT OUATIER...";
-          localStorage.removeItem('rians_tokens');
-          setTimeout(() => {
-            window.location.href = "acte2.html";
-          }, 2000);
+            bridgeProgress = 0;
+            bridgeFill.style.width = '0%';
+            bridgePercent.innerText = '0%';
+            gsap.to("#flash", { opacity: 0.9, duration: 0.1, yoyo: true, repeat: 3 });
+            document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! Progression réinitialisée !";
+          }
         } else {
-          statusMsg.style.color = "#ff3333";
-          statusMsg.innerText = "SERMENT INCORRECT. L'ESPRIT DU PARC REJETTE CE MOT.";
+          if (isHeadDown) {
+            isHeadDown = false;
+            eyeBadge.classList.remove('alert');
+            eyeBadge.innerText = "REGARD : ALIGNÉ";
+          }
+        }
+      }
+
+      const camera = new Camera(videoElement, {
+        onFrame: async () => { await faceMesh.send({ image: videoElement }); },
+        width: 480, height: 360, facingMode: 'user'
+      });
+      camera.start().catch(() => {});
+
+      setInterval(() => {
+        if (!isHeadDown && !isBridgeCompleted && bridgeProgress < 100) {
+          bridgeProgress += 2.5;
+          if (bridgeProgress > 100) bridgeProgress = 100;
+          bridgeFill.style.width = `${bridgeProgress}%`;
+          bridgePercent.innerText = `${Math.round(bridgeProgress)}%`;
+
+          if (bridgeProgress === 100) {
+            isBridgeCompleted = true;
+            eyeBadge.innerText = "TRAVERSÉE SÉCURISÉE";
+            soundSuccess.play();
+            document.getElementById('terminal-content').innerText = "> SUCCÈS : Pont Ouatier franchi ! Entrez la valeur des rambardes pour sceller l'Acte III.";
+          }
+        }
+      }, 1000);
+
+      // Carte Leaflet
+      const map = L.map('map', { zoomControl: false }).setView([PONT_OUATIER.lat, PONT_OUATIER.lng], 18);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: 'OSM' }).addTo(map);
+
+      const pontIcon = L.divIcon({
+        className: 'custom-pont-icon',
+        html: `<div style="width:16px;height:16px;background:#ff0033;border-radius:50%;box-shadow:0 0 15px #ff0033;border:2px solid #fff;"></div>`,
+        iconSize: [16, 16], iconAnchor: [8, 8]
+      });
+      L.marker([PONT_OUATIER.lat, PONT_OUATIER.lng], { icon: pontIcon }).addTo(map);
+
+      let playerMarker = null;
+      if ('geolocation' in navigator) {
+        navigator.geolocation.watchPosition((pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          document.getElementById('gps-status').innerText = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          document.getElementById('gps-acc').innerText = `±${Math.round(pos.coords.accuracy)}m`;
+
+          if (!playerMarker) {
+            playerMarker = L.circleMarker([lat, lng], { color: '#00ff66', fillColor: '#00ff66', fillOpacity: 1, radius: 5 }).addTo(map);
+          } else {
+            playerMarker.setLatLng([lat, lng]);
+          }
+        }, null, { enableHighAccuracy: true });
+      }
+
+      document.getElementById('btn-valide').addEventListener('click', async () => {
+        const val = parseFloat(document.getElementById('rambarde-val').value.replace(',', '.'));
+        if (isNaN(val)) return alert("Veuillez entrer un nombre valide !");
+
+        soundSuccess.play();
+        document.getElementById('puzzle-box').style.borderColor = "var(--green-spectral)";
+        document.getElementById('terminal-content').innerText = `> VALEUR SPECTRALE [${val}] CONFIRMÉE !\n> ACTE III TERMINÉ !`;
+
+        try {
+          let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
+          if (!localTokens.includes('pont_ouatier')) localTokens.push('pont_ouatier');
+          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
+
+          await db.from('equipes').upsert({
+            code_equipe: currentTeam,
+            acte3_balises: localTokens,
+            acte3_cleared: true,
+            updated_at: new Date().toISOString()
+          });
+        } catch (e) {
+          console.error(e);
         }
       });
     </script>
