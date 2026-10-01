@@ -3,14 +3,14 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta charset="utf-8" />
-    <title>ACTE II — LE RÉSEAU DU SANG & L'IMPULSION</title>
+    <title>ACTE II — LE RÉSEAU DU SANG</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-    <!-- Librairies CDN (Three.js, GSAP, Howler, Supabase, Leaflet) -->
+    <!-- CDN Librairies (Three.js, GSAP, Howler, Supabase, Leaflet) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
@@ -21,8 +21,9 @@
     <style>
       :root {
         --red-blood: #ff0033;
-        --red-glow: #ff003388;
+        --red-glow: #ff0033aa;
         --green-spectral: #00ff66;
+        --yellow-warn: #ffcc00;
         --bg-void: #020102;
         --border-hud: rgba(255, 0, 51, 0.4);
       }
@@ -46,8 +47,8 @@
       .crt-overlay {
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
-        background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.95) 100%),
-                    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%);
+        background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.96) 100%),
+                    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%);
         background-size: 100% 100%, 100% 4px;
         pointer-events: none;
         z-index: 100;
@@ -57,17 +58,17 @@
       .hud-container {
         width: 100%;
         max-width: 480px;
-        background: rgba(12, 2, 4, 0.92);
+        background: rgba(10, 2, 4, 0.94);
         border: 1px solid var(--border-hud);
-        box-shadow: 0 0 40px rgba(255, 0, 51, 0.15), inset 0 0 15px rgba(255, 0, 51, 0.1);
-        padding: 15px;
+        box-shadow: 0 0 35px rgba(255, 0, 51, 0.2), inset 0 0 15px rgba(255, 0, 51, 0.1);
+        padding: 14px;
         border-radius: 4px;
         position: relative;
         z-index: 10;
         margin-top: 5px;
       }
 
-      /* Coins HUD SVG Style Militaire */
+      /* Coins HUD Style Tactique */
       .corner-tl, .corner-tr, .corner-bl, .corner-br {
         position: absolute;
         width: 12px; height: 12px;
@@ -84,7 +85,7 @@
       .header-title {
         font-family: 'Cinzel', serif;
         font-weight: 900;
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         color: #fff;
         text-shadow: 0 0 10px var(--red-blood), 0 0 20px var(--red-blood);
         text-align: center;
@@ -94,21 +95,78 @@
 
       .header-sub {
         font-family: 'Orbitron', sans-serif;
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         color: var(--red-blood);
         text-align: center;
-        letter-spacing: 3px;
-        margin-bottom: 12px;
+        letter-spacing: 2px;
+        margin-bottom: 10px;
         display: flex;
         justify-content: space-between;
-        border-bottom: 1px solid rgba(255, 0, 51, 0.2);
-        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(255, 0, 51, 0.25);
+        padding-bottom: 5px;
       }
 
-      /* Visualiseur 3D Canvas */
+      /* CHRONOMÈTRE DE PRESSION SPECTRALE */
+      .timer-box {
+        background: rgba(25, 0, 5, 0.9);
+        border: 1px solid var(--red-blood);
+        border-radius: 3px;
+        padding: 8px 12px;
+        margin-bottom: 12px;
+        text-align: center;
+        box-shadow: inset 0 0 10px rgba(255,0,51,0.2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .timer-box.critical {
+        border-color: #ff0000;
+        animation: pulse-critical 0.8s infinite alternate;
+      }
+
+      @keyframes pulse-critical {
+        0% { box-shadow: 0 0 5px #ff0000, inset 0 0 5px #ff0000; }
+        100% { box-shadow: 0 0 25px #ff0000, inset 0 0 15px #ff0000; }
+      }
+
+      .timer-label {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        color: var(--red-blood);
+        letter-spacing: 2px;
+        margin-bottom: 2px;
+      }
+
+      .timer-digits {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 1.8rem;
+        color: #ffffff;
+        text-shadow: 0 0 12px var(--red-blood);
+        letter-spacing: 3px;
+      }
+
+      .timer-progress-bar {
+        width: 100%;
+        height: 4px;
+        background: rgba(255,0,51,0.2);
+        margin-top: 6px;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .timer-progress-fill {
+        height: 100%;
+        width: 100%;
+        background: var(--red-blood);
+        box-shadow: 0 0 8px var(--red-blood);
+        transition: width 0.2s linear;
+      }
+
+      /* Canvas 3D */
       #canvas-3d-wrapper {
         width: 100%;
-        height: 160px;
+        height: 150px;
         background: #000;
         border: 1px solid var(--border-hud);
         border-radius: 3px;
@@ -127,16 +185,16 @@
         position: absolute;
         top: 8px; left: 8px;
         font-family: 'Orbitron', sans-serif;
-        font-size: 0.6rem;
+        font-size: 0.58rem;
         color: #fff;
-        background: rgba(255, 0, 51, 0.3);
+        background: rgba(255, 0, 51, 0.35);
         border: 1px solid var(--red-blood);
         padding: 2px 6px;
         border-radius: 2px;
         pointer-events: none;
       }
 
-      /* Carte & Radar GPS */
+      /* Carte & Radar */
       .map-wrapper {
         position: relative;
         border: 1px solid var(--border-hud);
@@ -146,9 +204,9 @@
       }
 
       .map-header {
-        background: rgba(255, 0, 51, 0.1);
+        background: rgba(255, 0, 51, 0.12);
         padding: 4px 8px;
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         display: flex;
         justify-content: space-between;
         color: #ff9999;
@@ -157,43 +215,48 @@
 
       #map {
         width: 100%;
-        height: 180px;
-        background: #080808;
+        height: 170px;
+        background: #050102;
       }
 
-      /* Cible Status Card */
+      /* Filtre Sombre Rouge Sang pour la carte Esri (Pas besoin de clé API) */
+      .leaflet-tile {
+        filter: brightness(0.45) invert(1) contrast(1.7) hue-rotate(315deg) saturate(2.8) !important;
+      }
+
+      /* Cible Box */
       .target-box {
-        background: rgba(20, 3, 6, 0.8);
+        background: rgba(20, 3, 6, 0.85);
         border: 1px dashed var(--red-blood);
         padding: 10px;
         border-radius: 3px;
         text-align: center;
         margin-bottom: 12px;
-        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: all 0.5s ease;
       }
 
       .target-box.captured {
-        background: rgba(0, 40, 15, 0.85);
+        background: rgba(0, 35, 12, 0.9);
         border: 1px solid var(--green-spectral);
-        box-shadow: 0 0 25px rgba(0, 255, 102, 0.3);
+        box-shadow: 0 0 20px rgba(0, 255, 102, 0.25);
       }
 
       .target-title {
         font-family: 'Orbitron', sans-serif;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 700;
         color: #fff;
       }
 
       .target-coords {
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         color: #ff8888;
-        margin: 4px 0;
+        margin: 3px 0;
       }
 
       .target-status-text {
         font-family: 'Orbitron', sans-serif;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: bold;
         color: var(--red-blood);
       }
@@ -207,39 +270,36 @@
         background: #000;
         border: 1px solid rgba(255, 0, 51, 0.3);
         padding: 10px;
-        min-height: 70px;
-        font-size: 0.75rem;
-        line-height: 1.4;
+        min-height: 65px;
+        font-size: 0.72rem;
+        line-height: 1.35;
         color: #ff9999;
         border-radius: 3px;
         margin-bottom: 12px;
-        position: relative;
       }
 
       /* Bouton d'Action Tactique */
       .btn-impulse {
         width: 100%;
-        background: linear-gradient(180deg, #ff1a40 0%, #b30024 100%);
+        background: linear-gradient(180deg, #ff1a40 0%, #a00020 100%);
         color: #fff;
         border: none;
         padding: 14px;
         font-family: 'Orbitron', sans-serif;
         font-weight: 900;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         letter-spacing: 2px;
         border-radius: 3px;
         cursor: pointer;
         box-shadow: 0 0 20px rgba(255, 0, 51, 0.5);
         display: none;
-        position: relative;
-        overflow: hidden;
       }
 
       .btn-impulse:active {
         transform: scale(0.98);
       }
 
-      /* Animation Glitch Flash */
+      /* Flash Screen Overlay */
       .flash-screen {
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
@@ -263,35 +323,44 @@
 
       <div class="header-title">ACTE II : LE PUITS DES OMBRES</div>
       <div class="header-sub">
-        <span>31 OCT. // HALLOWEEN</span>
-        <span>SOUSTERRAIN v4.8</span>
+        <span>31 OCT. // RIANS</span>
+        <span>SOUSTERRAIN v4.9</span>
       </div>
 
-      <!-- Module Visualiseur 3D artefact -->
+      <!-- Chronomètre de Pression -->
+      <div class="timer-box" id="timer-box">
+        <div class="timer-label" id="timer-label">CONFINEMENT ANOMALIE DANS</div>
+        <div class="timer-digits" id="timer-digits">15:00.00</div>
+        <div class="timer-progress-bar">
+          <div class="timer-progress-fill" id="timer-fill"></div>
+        </div>
+      </div>
+
+      <!-- Visualiseur 3D Artefact -->
       <div id="canvas-3d-wrapper">
-        <div class="canvas-badge" id="3d-status">ARTEFACT 3D : ACTIF</div>
+        <div class="canvas-badge" id="3d-status">ARTEFACT 3D : RECHERCHE</div>
         <canvas id="three-canvas"></canvas>
       </div>
 
-      <!-- Carte Radar GPS -->
+      <!-- Carte Radar GPS Esri -->
       <div class="map-wrapper">
         <div class="map-header">
-          <span id="gps-status">GPS : RECHERCHE DU SIGNAL...</span>
+          <span id="gps-status">GPS : ACQUISITION DU SIGNAL...</span>
           <span id="gps-acc">±--m</span>
         </div>
         <div id="map"></div>
       </div>
 
-      <!-- Carte Cible Puits Mairie -->
+      <!-- Cible Puits Mairie -->
       <div class="target-box" id="target-box">
         <div class="target-title">PUITS DE LA MAIRIE [SECTEUR 02]</div>
         <div class="target-coords">GPS: N 47° 11,085' E 2° 36,823'</div>
-        <div class="target-status-text" id="target-status">RECHERCHE DE LA PUCE RITUELLE NFC...</div>
+        <div class="target-status-text" id="target-status">RECHERCHE DU SCEAU NFC...</div>
       </div>
 
       <!-- Console Terminal -->
       <div class="terminal-box" id="terminal">
-        <div id="terminal-content">> Approchez du Puits de la Mairie et appliquez le sceau NFC pour ouvrir le canal des profonds...</div>
+        <div id="terminal-content">> Localisez le Puits de la Mairie avant l'expiration du délai et scannez la puce NFC pour activer le canal...</div>
       </div>
 
       <!-- Bouton d'Impulsion -->
@@ -314,148 +383,160 @@
       };
 
       // ==========================================
-      // 2. MOTEUR AUDIO HAUTE FIDÉLITÉ (Web Audio API)
+      // 2. CHRONOMÈTRE DE PRESSION SPECTRALE (15 min)
       // ==========================================
-      class HalloweenAudioEngine {
-        constructor() {
-          this.ctx = null;
-        }
-
-        init() {
-          if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-          }
-        }
-
-        // Sub-Bass Infrasonique
-        playDarkDrone(duration = 2.5) {
-          this.init();
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(35, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(90, this.ctx.currentTime + duration);
-
-          gain.gain.setValueAtTime(0.7, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + duration);
-        }
-
-        // Décharge Glitch / Parasites
-        playGlitchNoise() {
-          this.init();
-          const bufferSize = this.ctx.sampleRate * 0.4;
-          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-          const data = buffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-          }
-
-          const noise = this.ctx.createBufferSource();
-          noise.buffer = buffer;
-
-          const filter = this.ctx.createBiquadFilter();
-          filter.type = 'bandpass';
-          filter.frequency.value = 1200;
-
-          const gain = this.ctx.createGain();
-          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
-
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(this.ctx.destination);
-          noise.start();
-        }
-
-        // Battement de Coeur Éthéré
-        playHeartbeat() {
-          this.init();
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(60, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.3);
-
-          gain.gain.setValueAtTime(1.0, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
-
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + 0.3);
-        }
+      const TOTAL_TIME_SEC = 15 * 60; // 15 minutes en secondes
+      const storageKey = `act2_timer_start_${currentTeam}`;
+      
+      let startTime = localStorage.getItem(storageKey);
+      if (!startTime) {
+        startTime = Date.now();
+        localStorage.setItem(storageKey, startTime);
+      } else {
+        startTime = parseInt(startTime, 10);
       }
 
-      const audioEngine = new HalloweenAudioEngine();
+      const timerDigits = document.getElementById('timer-digits');
+      const timerFill = document.getElementById('timer-fill');
+      const timerBox = document.getElementById('timer-box');
+      let timerExpired = false;
+
+      function updateTimer() {
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        const remainingSec = Math.max(0, TOTAL_TIME_SEC - elapsedSec);
+
+        const mins = Math.floor(remainingSec / 60);
+        const secs = Math.floor(remainingSec % 60);
+        const ms = Math.floor((remainingSec % 1) * 100);
+
+        const formattedMins = String(mins).padStart(2, '0');
+        const formattedSecs = String(secs).padStart(2, '0');
+        const formattedMs = String(ms).padStart(2, '0');
+
+        timerDigits.innerText = `${formattedMins}:${formattedSecs}.${formattedMs}`;
+
+        // Mise à jour de la barre
+        const percent = (remainingSec / TOTAL_TIME_SEC) * 100;
+        timerFill.style.width = `${percent}%`;
+
+        // Pression sous les 3 minutes
+        if (remainingSec <= 180 && remainingSec > 0) {
+          timerBox.classList.add('critical');
+          if (Math.floor(remainingSec * 2) % 2 === 0) {
+            playBeepSound(800, 0.05);
+          }
+        }
+
+        // Expiration du temps
+        if (remainingSec <= 0 && !timerExpired) {
+          timerExpired = true;
+          timerDigits.innerText = "00:00.00";
+          timerBox.classList.add('critical');
+          document.getElementById('timer-label').innerText = "ANOMALIE LIBÉRÉE — CONFINEMENT ÉCHOUÉ";
+          document.getElementById('terminal-content').innerText = "> CRITIQUE : Le puits a débordé. Les créatures se propagent dans Rians...";
+          soundImpact.play();
+          if ('vibrate' in navigator) navigator.vibrate([500, 100, 500, 100, 1000]);
+          return;
+        }
+
+        if (!timerExpired) {
+          requestAnimationFrame(updateTimer);
+        }
+      }
+      requestAnimationFrame(updateTimer);
 
       // ==========================================
-      // 3. ARTEFACT 3D WEBGL (THREE.JS)
+      // 3. SOUND DESIGN CINÉMA (Howler.js + Web Audio)
+      // ==========================================
+      const soundImpact = new Howl({
+        src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'],
+        volume: 1.0
+      });
+
+      const soundGlitch = new Howl({
+        src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'],
+        volume: 0.75
+      });
+
+      const soundDrone = new Howl({
+        src: ['https://assets.mixkit.co/active_storage/sfx/2673/2673-preview.mp3'],
+        volume: 0.5
+      });
+
+      // Bip de secours synthétisé
+      let audioCtx = null;
+      function playBeepSound(freq = 600, duration = 0.08) {
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {}
+      }
+
+      function playCinematicImpulse() {
+        soundImpact.play();
+        setTimeout(() => soundGlitch.play(), 180);
+        setTimeout(() => soundDrone.play(), 450);
+      }
+
+      // ==========================================
+      // 4. ARTEFACT 3D WEBGL (THREE.JS)
       // ==========================================
       const wrapper = document.getElementById('canvas-3d-wrapper');
       const canvas3d = document.getElementById('three-canvas');
 
       const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x020102, 0.15);
+      scene.fog = new THREE.FogExp2(0x020102, 0.16);
 
       const camera = new THREE.PerspectiveCamera(45, wrapper.clientWidth / wrapper.clientHeight, 0.1, 100);
-      camera.position.z = 4.5;
+      camera.position.z = 4.2;
 
       const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
       renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      // Objet 3D : Dodecaedre / Rune de Sang
-      const geo = new THREE.DodecahedronGeometry(1.1, 0);
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xff0033,
-        wireframe: true
-      });
+      // Dodecaedre / Rune de Sang
+      const geo = new THREE.DodecahedronGeometry(1.0, 0);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xff0033, wireframe: true });
       const runeCore = new THREE.Mesh(geo, mat);
       scene.add(runeCore);
 
-      // Core interne lumineux
-      const innerGeo = new THREE.OctahedronGeometry(0.6, 0);
+      // Noyau Interne
+      const innerGeo = new THREE.OctahedronGeometry(0.55, 0);
       const innerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const innerCore = new THREE.Mesh(innerGeo, innerMat);
       scene.add(innerCore);
 
-      // Particules d'éther autour du Puits
+      // Particules d'éther
       const particlesGeo = new THREE.BufferGeometry();
-      const count = 120;
+      const count = 100;
       const posArray = new Float32Array(count * 3);
-
       for(let i=0; i<count*3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 6;
+        posArray[i] = (Math.random() - 0.5) * 5.5;
       }
       particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-      const particlesMat = new THREE.PointsMaterial({
-        size: 0.03,
-        color: 0xff3355,
-        transparent: true,
-        opacity: 0.8
-      });
+      const particlesMat = new THREE.PointsMaterial({ size: 0.03, color: 0xff2244, transparent: true, opacity: 0.8 });
       const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
       scene.add(particlesMesh);
 
-      // Animation Boucle Three.js
       let speed = 0.008;
       function animate3D() {
         requestAnimationFrame(animate3D);
         runeCore.rotation.x += speed;
-        runeCore.rotation.y += speed * 1.5;
-        innerCore.rotation.y -= speed * 2;
+        runeCore.rotation.y += speed * 1.4;
+        innerCore.rotation.y -= speed * 1.8;
         particlesMesh.rotation.y += 0.002;
         renderer.render(scene, camera);
       }
       animate3D();
 
-      // Redimensionnement réactif
       window.addEventListener('resize', () => {
         camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
         camera.updateProjectionMatrix();
@@ -463,24 +544,23 @@
       });
 
       // ==========================================
-      // 4. CARTE LEAFLET SOMBRE (CartoDB Dark)
+      // 5. CARTE LEAFLET SOMBRE (ESRI DARK GRAY)
       // ==========================================
       const map = L.map('map', { zoomControl: false }).setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
-      
-      // Tile layer Sombre Pro
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
-        maxZoom: 19
+
+      // Layer ESRI Dark (Sans API Key)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18,
+        attribution: 'Esri'
       }).addTo(map);
 
-      // Marqueur Puits avec halo rouge
+      // Marqueur Puits
       const puitsIcon = L.divIcon({
         className: 'custom-puits-icon',
         html: `<div style="width:16px;height:16px;background:#ff0033;border-radius:50%;box-shadow:0 0 15px #ff0033;border:2px solid #fff;"></div>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8]
       });
-
       L.marker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], { icon: puitsIcon }).addTo(map);
 
       let playerMarker = null;
@@ -506,37 +586,30 @@
       }
 
       // ==========================================
-      // 5. ANIMATIONS GSAP & DÉCLENCHEMENT SPECTRALE
+      // 6. ANIMATIONS & SÉQUENCE DE DÉCLENCHEMENT
       // ==========================================
       function triggerSpectralSequence() {
-        // Vibrations Haptiques complexes
         if ('vibrate' in navigator) {
-          navigator.vibrate([100, 30, 100, 30, 300, 50, 500]);
+          navigator.vibrate([120, 30, 120, 30, 400, 50, 600]);
         }
 
-        // Effets Audio
-        audioEngine.playHeartbeat();
-        setTimeout(() => audioEngine.playGlitchNoise(), 150);
-        setTimeout(() => audioEngine.playDarkDrone(3.0), 300);
+        playCinematicImpulse();
 
-        // Flash & Shake GSAP
-        gsap.to("#flash", { opacity: 0.8, duration: 0.05, yoyo: true, repeat: 3, ease: "power2.inOut" });
+        gsap.to("#flash", { opacity: 0.85, duration: 0.05, yoyo: true, repeat: 3, ease: "power2.inOut" });
         gsap.fromTo("#hud", 
-          { x: -10, y: 5 }, 
-          { x: 10, y: -5, duration: 0.05, repeat: 8, yoyo: true, ease: "rough" }
+          { x: -12, y: 6 }, 
+          { x: 12, y: -6, duration: 0.05, repeat: 8, yoyo: true, ease: "rough" }
         );
 
-        // Réaction de l'artefact 3D (Accélération & Couleur Vert Spectral)
-        speed = 0.08;
+        // Réaction de l'objet 3D (Devient Vert Spectral)
+        speed = 0.07;
         mat.color.setHex(0x00ff66);
         particlesMat.color.setHex(0x00ff66);
 
-        setTimeout(() => {
-          speed = 0.008;
-        }, 3000);
+        setTimeout(() => { speed = 0.008; }, 3000);
       }
 
-      // Machine à écrire pour la console
+      // Machine à écrire
       function typeTerminalText(text) {
         const target = document.getElementById('terminal-content');
         target.innerHTML = "> ";
@@ -545,15 +618,15 @@
           if (i < text.length) {
             target.innerHTML += text.charAt(i);
             i++;
-            if(i % 3 === 0) audioEngine.playGlitchNoise();
-            setTimeout(type, 20);
+            if (i % 4 === 0) soundGlitch.play();
+            setTimeout(type, 18);
           }
         }
         type();
       }
 
       // ==========================================
-      // 6. DÉVERROUILLAGE DU PUITS & SUPABASE
+      // 7. DÉVERROUILLAGE NFC & SYNCHRO SUPABASE
       // ==========================================
       const targetBox = document.getElementById('target-box');
       const targetStatus = document.getElementById('target-status');
@@ -561,18 +634,18 @@
 
       async function unlockPuitsMairie() {
         targetBox.classList.add('captured');
-        targetStatus.innerText = "SCEAU VALIDE — RÉSEAU SOUTERRAIN ACTIF";
+        targetStatus.innerText = "SCEAU VALIDE — RÉSEAU ACTIF";
         document.getElementById('3d-status').innerText = "ARTEFACT : ALIGNÉ";
-        document.getElementById('3d-status').style.background = "rgba(0,255,102,0.3)";
+        document.getElementById('3d-status').style.background = "rgba(0,255,102,0.35)";
 
-        typeTerminalText("Sceau rituel identifié.\n> Connexion au réseau des canalisations ancestrales établie.\n> Impulsion spectrale prête à l'émission.");
+        typeTerminalText("Sceau rituel validé !\n> Connexion au réseau des canalisations ancestrales établie.\n> Prêt pour l'impulsion spectrale.");
 
         btnTrigger.style.display = "block";
-        gsap.from("#btn-trigger", { scale: 0.8, opacity: 0, duration: 0.6, ease: "back.out(1.7)" });
+        gsap.from("#btn-trigger", { scale: 0.8, opacity: 0, duration: 0.5, ease: "back.out(1.7)" });
 
         triggerSpectralSequence();
 
-        // Enregistrement de la balise dans Supabase
+        // Enregistrement dans Supabase
         try {
           let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
           if (!localTokens.includes('puits_mairie')) localTokens.push('puits_mairie');
@@ -588,7 +661,7 @@
         }
       }
 
-      // Interception du paramètre NFC (?token=puits_mairie)
+      // Détection de la puce NFC (?token=puits_mairie)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
@@ -597,10 +670,10 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // Clic sur le bouton d'impulsion
+      // Clic sur l'impulsion
       btnTrigger.addEventListener('click', () => {
         triggerSpectralSequence();
-        typeTerminalText("ONDE DE CHOC SPECTRALE RÉÉMISE DANS LE RÉSEAU SOUTERRAIN.");
+        typeTerminalText("ONDE DE CHOC SPECTRALE RÉÉMISE DANS LE SOUSTERRAIN DE RIANS.");
       });
     </script>
   </body>
