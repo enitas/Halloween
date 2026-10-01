@@ -3,309 +3,488 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta charset="utf-8" />
-    <title>Acte II — Réseau Souterrain & Impulsion</title>
+    <title>ACTE II — LE RÉSEAU DU SANG & L'IMPULSION</title>
 
-    <!-- SDK Supabase -->
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Librairies CDN (Three.js, GSAP, Howler, Supabase, Leaflet) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Leaflet (Carte Interactive) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
       :root {
-        --bg-color: #030101;
-        --red-main: #ff0033;
-        --red-glow: rgba(255, 0, 51, 0.6);
-        --green-active: #00ff66;
+        --red-blood: #ff0033;
+        --red-glow: #ff003388;
+        --green-spectral: #00ff66;
+        --bg-void: #020102;
+        --border-hud: rgba(255, 0, 51, 0.4);
       }
+
+      * { box-sizing: border-box; user-select: none; }
 
       body {
         margin: 0;
-        padding: 12px;
-        background-color: var(--bg-color);
-        color: var(--red-main);
-        font-family: 'Courier New', monospace;
+        padding: 10px;
+        background-color: var(--bg-void);
+        color: #ffcccc;
+        font-family: 'Share Tech Mono', monospace;
         display: flex;
         flex-direction: column;
         align-items: center;
         min-height: 100vh;
-        box-sizing: border-box;
         overflow-x: hidden;
       }
 
-      /* Effet Vignettage Cathodique (CRT) */
-      body::before {
-        content: "";
+      /* FX Vignette & Overlay CRT */
+      .crt-overlay {
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
-        background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.9) 100%);
+        background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.95) 100%),
+                    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%);
+        background-size: 100% 100%, 100% 4px;
         pointer-events: none;
-        z-index: 10;
+        z-index: 100;
       }
 
-      /* Lignes de balayage écran */
-      body::after {
-        content: "";
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%);
-        background-size: 100% 4px;
-        pointer-events: none;
-        z-index: 11;
-      }
-
-      .container {
+      /* Container Principal HUD */
+      .hud-container {
         width: 100%;
         max-width: 480px;
-        background: rgba(10, 2, 2, 0.95);
-        border: 1px solid var(--red-main);
+        background: rgba(12, 2, 4, 0.92);
+        border: 1px solid var(--border-hud);
+        box-shadow: 0 0 40px rgba(255, 0, 51, 0.15), inset 0 0 15px rgba(255, 0, 51, 0.1);
         padding: 15px;
-        box-shadow: 0 0 35px rgba(255, 0, 0, 0.25);
         border-radius: 4px;
-        box-sizing: border-box;
         position: relative;
-        z-index: 1;
+        z-index: 10;
+        margin-top: 5px;
       }
 
-      /* Titre Glitch */
-      h1 {
-        font-size: 1.1rem;
-        letter-spacing: 3px;
+      /* Coins HUD SVG Style Militaire */
+      .corner-tl, .corner-tr, .corner-bl, .corner-br {
+        position: absolute;
+        width: 12px; height: 12px;
+        border-color: var(--red-blood);
+        border-style: solid;
+        pointer-events: none;
+      }
+      .corner-tl { top: -1px; left: -1px; border-width: 3px 0 0 3px; }
+      .corner-tr { top: -1px; right: -1px; border-width: 3px 3px 0 0; }
+      .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 3px 3px; }
+      .corner-br { bottom: -1px; right: -1px; border-width: 0 3px 3px 0; }
+
+      /* En-tête */
+      .header-title {
+        font-family: 'Cinzel', serif;
+        font-weight: 900;
+        font-size: 1.15rem;
+        color: #fff;
+        text-shadow: 0 0 10px var(--red-blood), 0 0 20px var(--red-blood);
         text-align: center;
-        margin: 0 0 10px 0;
-        text-shadow: 2px 0 var(--red-main), -2px 0 #800000;
-        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin: 0 0 4px 0;
       }
 
-      .team-bar {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.7rem;
-        color: #888;
-        border-bottom: 1px solid #330000;
-        padding-bottom: 6px;
-        margin-bottom: 12px;
-      }
-
-      /* Alerte Clignotante Halloween */
-      .alert-banner {
-        background: #1a0003;
-        border: 1px solid var(--red-main);
-        color: #ff9999;
-        padding: 8px 10px;
-        font-size: 0.7rem;
-        border-radius: 3px;
-        margin-bottom: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        animation: pulseAlert 2s infinite;
-      }
-
-      @keyframes pulseAlert {
-        0%, 100% { border-color: var(--red-main); box-shadow: 0 0 5px rgba(255, 0, 0, 0.2); }
-        50% { border-color: #800000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.6); }
-      }
-
-      .danger-tag {
-        background: var(--red-main);
-        color: #000;
-        font-weight: bold;
-        padding: 2px 5px;
+      .header-sub {
+        font-family: 'Orbitron', sans-serif;
         font-size: 0.65rem;
-      }
-
-      /* Carte Sombre Stylisée */
-      .gps-box {
-        background: #000;
-        border: 1px solid #550000;
-        padding: 8px;
+        color: var(--red-blood);
+        text-align: center;
+        letter-spacing: 3px;
         margin-bottom: 12px;
-        border-radius: 3px;
-      }
-
-      .gps-coords {
-        font-size: 0.7rem;
-        color: #ff8888;
         display: flex;
         justify-content: space-between;
-        margin-bottom: 6px;
+        border-bottom: 1px solid rgba(255, 0, 51, 0.2);
+        padding-bottom: 6px;
+      }
+
+      /* Visualiseur 3D Canvas */
+      #canvas-3d-wrapper {
+        width: 100%;
+        height: 160px;
+        background: #000;
+        border: 1px solid var(--border-hud);
+        border-radius: 3px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      #three-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .canvas-badge {
+        position: absolute;
+        top: 8px; left: 8px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        color: #fff;
+        background: rgba(255, 0, 51, 0.3);
+        border: 1px solid var(--red-blood);
+        padding: 2px 6px;
+        border-radius: 2px;
+        pointer-events: none;
+      }
+
+      /* Carte & Radar GPS */
+      .map-wrapper {
+        position: relative;
+        border: 1px solid var(--border-hud);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      .map-header {
+        background: rgba(255, 0, 51, 0.1);
+        padding: 4px 8px;
+        font-size: 0.68rem;
+        display: flex;
+        justify-content: space-between;
+        color: #ff9999;
+        border-bottom: 1px solid var(--border-hud);
       }
 
       #map {
         width: 100%;
-        height: 220px;
-        border: 1px solid var(--red-main);
-        border-radius: 2px;
-        background: #050505;
-        /* Map sombre style radar */
-        filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(120%);
+        height: 180px;
+        background: #080808;
       }
 
-      /* Overlay Canvas pour effets spectraux */
-      #fx-canvas {
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        pointer-events: none;
-        z-index: 12;
-      }
-
-      /* Cible */
-      .target-card {
-        background: #0d0002;
-        border: 1px dashed var(--red-main);
-        padding: 12px;
+      /* Cible Status Card */
+      .target-box {
+        background: rgba(20, 3, 6, 0.8);
+        border: 1px dashed var(--red-blood);
+        padding: 10px;
         border-radius: 3px;
-        margin-bottom: 12px;
         text-align: center;
-        transition: all 0.4s ease;
+        margin-bottom: 12px;
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
 
-      .target-card.active {
-        background: #001a08;
-        border: 1px solid var(--green-active);
-        box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
+      .target-box.captured {
+        background: rgba(0, 40, 15, 0.85);
+        border: 1px solid var(--green-spectral);
+        box-shadow: 0 0 25px rgba(0, 255, 102, 0.3);
       }
 
       .target-title {
+        font-family: 'Orbitron', sans-serif;
         font-size: 0.85rem;
-        font-weight: bold;
+        font-weight: 700;
         color: #fff;
       }
 
-      .target-gps {
-        font-size: 0.68rem;
-        color: #ff7777;
-        margin: 4px 0 6px 0;
+      .target-coords {
+        font-size: 0.7rem;
+        color: #ff8888;
+        margin: 4px 0;
       }
 
-      .target-status {
+      .target-status-text {
+        font-family: 'Orbitron', sans-serif;
         font-size: 0.75rem;
         font-weight: bold;
-        color: var(--red-main);
+        color: var(--red-blood);
       }
 
-      /* Console */
+      .target-box.captured .target-status-text {
+        color: var(--green-spectral);
+      }
+
+      /* Terminal Console */
       .terminal-box {
         background: #000;
-        border: 1px solid #440000;
+        border: 1px solid rgba(255, 0, 51, 0.3);
         padding: 10px;
-        min-height: 75px;
+        min-height: 70px;
         font-size: 0.75rem;
         line-height: 1.4;
-        color: #ffaaaa;
+        color: #ff9999;
         border-radius: 3px;
         margin-bottom: 12px;
+        position: relative;
       }
 
-      .action-btn {
-        background: var(--red-main);
-        color: #000;
+      /* Bouton d'Action Tactique */
+      .btn-impulse {
+        width: 100%;
+        background: linear-gradient(180deg, #ff1a40 0%, #b30024 100%);
+        color: #fff;
         border: none;
         padding: 14px;
-        font-family: inherit;
-        font-weight: bold;
-        font-size: 0.8rem;
-        cursor: pointer;
-        width: 100%;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 0.85rem;
+        letter-spacing: 2px;
         border-radius: 3px;
-        letter-spacing: 1px;
-        box-shadow: 0 0 15px rgba(255, 0, 51, 0.4);
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(255, 0, 51, 0.5);
+        display: none;
+        position: relative;
+        overflow: hidden;
       }
 
-      .action-btn:active {
+      .btn-impulse:active {
         transform: scale(0.98);
       }
 
-      /* Animation Shake */
-      .shake {
-        animation: shakeAnim 0.5s cubic-bezier(.36,.07,.19,.97) both;
-      }
-
-      @keyframes shakeAnim {
-        10%, 90% { transform: translate3d(-3px, 0, 0); }
-        20%, 80% { transform: translate3d(5px, 0, 0); }
-        30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-        40%, 60% { transform: translate3d(8px, 0, 0); }
+      /* Animation Glitch Flash */
+      .flash-screen {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #ffffff;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 200;
       }
     </style>
   </head>
   <body>
 
-    <!-- Canvas plein écran pour effets de parasites et ondes -->
-    <canvas id="fx-canvas"></canvas>
+    <div class="crt-overlay"></div>
+    <div class="flash-screen" id="flash"></div>
 
-    <div class="container" id="main-container">
-      <h1>ACTE II : RÉSEAU SOUTERRAIN</h1>
+    <div class="hud-container" id="hud">
+      <div class="corner-tl"></div>
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+      <div class="corner-br"></div>
 
-      <div class="team-bar">
-        <span>31 OCT. — NUIT D'HALLOWEEN</span>
-        <span>ÉQUIPE : <strong id="team-name" style="color:#fff;">---</strong></span>
+      <div class="header-title">ACTE II : LE PUITS DES OMBRES</div>
+      <div class="header-sub">
+        <span>31 OCT. // HALLOWEEN</span>
+        <span>SOUSTERRAIN v4.8</span>
       </div>
 
-      <div class="alert-banner">
-        <span>ANOMALIE ANCESTRALE DÉTECTÉE</span>
-        <span class="danger-tag">DANGER : ÉLEVÉ</span>
+      <!-- Module Visualiseur 3D artefact -->
+      <div id="canvas-3d-wrapper">
+        <div class="canvas-badge" id="3d-status">ARTEFACT 3D : ACTIF</div>
+        <canvas id="three-canvas"></canvas>
       </div>
 
-      <!-- Carte & GPS -->
-      <div class="gps-box">
-        <div class="gps-coords">
-          <span id="gps-status">GPS : ACQUISITION...</span>
-          <span id="gps-acc"></span>
+      <!-- Carte Radar GPS -->
+      <div class="map-wrapper">
+        <div class="map-header">
+          <span id="gps-status">GPS : RECHERCHE DU SIGNAL...</span>
+          <span id="gps-acc">±--m</span>
         </div>
         <div id="map"></div>
       </div>
 
-      <!-- Cible Puits Mairie -->
-      <div class="target-card" id="target-card">
-        <div class="target-title">2. PUITS MAIRIE (RÉSEAU ANCIEN)</div>
-        <div class="target-gps">N 47° 11,085' E 2° 36,823'</div>
-        <div class="target-status" id="target-status">SIGNAL NON DÉTECTÉ</div>
+      <!-- Carte Cible Puits Mairie -->
+      <div class="target-box" id="target-box">
+        <div class="target-title">PUITS DE LA MAIRIE [SECTEUR 02]</div>
+        <div class="target-coords">GPS: N 47° 11,085' E 2° 36,823'</div>
+        <div class="target-status-text" id="target-status">RECHERCHE DE LA PUCE RITUELLE NFC...</div>
       </div>
 
-      <!-- Console réseau -->
+      <!-- Console Terminal -->
       <div class="terminal-box" id="terminal">
-        <span id="terminal-content">Approchez-vous du Puits de la Mairie et scannez le sceau NFC pour ouvrir le canal souterrain...</span>
+        <div id="terminal-content">> Approchez du Puits de la Mairie et appliquez le sceau NFC pour ouvrir le canal des profonds...</div>
       </div>
 
-      <button class="action-btn" id="trigger-strobo-btn" style="display:none;">ÉMETTRE L'IMPULSION SPECTRALE</button>
+      <!-- Bouton d'Impulsion -->
+      <button class="btn-impulse" id="btn-trigger">ÉMETTRE L'IMPULSION SPECTRALE</button>
     </div>
 
     <script>
-      // 1. CONFIGURATION SUPABASE ET ÉQUIPE
+      // ==========================================
+      // 1. CONFIGURATION SUPABASE & ÉQUIPE
+      // ==========================================
       const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
       const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
       const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
-      document.getElementById('team-name').innerText = currentTeam;
 
-      // 2. CIBLE : PUITS MAIRIE
       const PUITS_MAIRIE = {
-        id: "puits_mairie",
-        name: "PUITS MAIRIE",
         lat: 47.184750,
-        lng: 2.613717,
-        gpsStr: "N 47° 11,085' E 2° 36,823'"
+        lng: 2.613717
       };
 
-      // 3. CARTE LEAFLET SOMBRE
-      const map = L.map('map', { zoomControl: false }).setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      // ==========================================
+      // 2. MOTEUR AUDIO HAUTE FIDÉLITÉ (Web Audio API)
+      // ==========================================
+      class HalloweenAudioEngine {
+        constructor() {
+          this.ctx = null;
+        }
 
-      const targetMarker = L.circleMarker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], {
-        color: '#ff0033',
-        fillColor: '#ff0033',
-        fillOpacity: 0.9,
-        radius: 8
+        init() {
+          if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+        }
+
+        // Sub-Bass Infrasonique
+        playDarkDrone(duration = 2.5) {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(35, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(90, this.ctx.currentTime + duration);
+
+          gain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        }
+
+        // Décharge Glitch / Parasites
+        playGlitchNoise() {
+          this.init();
+          const bufferSize = this.ctx.sampleRate * 0.4;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = 1200;
+
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start();
+        }
+
+        // Battement de Coeur Éthéré
+        playHeartbeat() {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(60, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.3);
+
+          gain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.3);
+        }
+      }
+
+      const audioEngine = new HalloweenAudioEngine();
+
+      // ==========================================
+      // 3. ARTEFACT 3D WEBGL (THREE.JS)
+      // ==========================================
+      const wrapper = document.getElementById('canvas-3d-wrapper');
+      const canvas3d = document.getElementById('three-canvas');
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x020102, 0.15);
+
+      const camera = new THREE.PerspectiveCamera(45, wrapper.clientWidth / wrapper.clientHeight, 0.1, 100);
+      camera.position.z = 4.5;
+
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
+      renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Objet 3D : Dodecaedre / Rune de Sang
+      const geo = new THREE.DodecahedronGeometry(1.1, 0);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xff0033,
+        wireframe: true
+      });
+      const runeCore = new THREE.Mesh(geo, mat);
+      scene.add(runeCore);
+
+      // Core interne lumineux
+      const innerGeo = new THREE.OctahedronGeometry(0.6, 0);
+      const innerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const innerCore = new THREE.Mesh(innerGeo, innerMat);
+      scene.add(innerCore);
+
+      // Particules d'éther autour du Puits
+      const particlesGeo = new THREE.BufferGeometry();
+      const count = 120;
+      const posArray = new Float32Array(count * 3);
+
+      for(let i=0; i<count*3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 6;
+      }
+      particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+      const particlesMat = new THREE.PointsMaterial({
+        size: 0.03,
+        color: 0xff3355,
+        transparent: true,
+        opacity: 0.8
+      });
+      const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
+      scene.add(particlesMesh);
+
+      // Animation Boucle Three.js
+      let speed = 0.008;
+      function animate3D() {
+        requestAnimationFrame(animate3D);
+        runeCore.rotation.x += speed;
+        runeCore.rotation.y += speed * 1.5;
+        innerCore.rotation.y -= speed * 2;
+        particlesMesh.rotation.y += 0.002;
+        renderer.render(scene, camera);
+      }
+      animate3D();
+
+      // Redimensionnement réactif
+      window.addEventListener('resize', () => {
+        camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+      });
+
+      // ==========================================
+      // 4. CARTE LEAFLET SOMBRE (CartoDB Dark)
+      // ==========================================
+      const map = L.map('map', { zoomControl: false }).setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
+      
+      // Tile layer Sombre Pro
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19
       }).addTo(map);
+
+      // Marqueur Puits avec halo rouge
+      const puitsIcon = L.divIcon({
+        className: 'custom-puits-icon',
+        html: `<div style="width:16px;height:16px;background:#ff0033;border-radius:50%;box-shadow:0 0 15px #ff0033;border:2px solid #fff;"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      L.marker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], { icon: puitsIcon }).addTo(map);
 
       let playerMarker = null;
 
-      // 4. GÉOLOCALISATION GPS
       if ('geolocation' in navigator) {
         navigator.geolocation.watchPosition((pos) => {
           const lat = pos.coords.latitude;
@@ -315,10 +494,10 @@
 
           if (!playerMarker) {
             playerMarker = L.circleMarker([lat, lng], {
-              color: '#00ffff',
-              fillColor: '#00ffff',
+              color: '#00ff66',
+              fillColor: '#00ff66',
               fillOpacity: 1,
-              radius: 6
+              radius: 5
             }).addTo(map);
           } else {
             playerMarker.setLatLng([lat, lng]);
@@ -326,145 +505,74 @@
         }, null, { enableHighAccuracy: true });
       }
 
-      // 5. DESIGN AUDIO HALLOWEEN (Synthesizer Web Audio API)
-      function playEerieImpulseSound() {
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
-          // A. Sub-bass Ground Rumble (Grondeur Souterrain)
-          const subOsc = ctx.createOscillator();
-          const subGain = ctx.createGain();
-          subOsc.type = 'sine';
-          subOsc.frequency.setValueAtTime(40, ctx.currentTime);
-          subOsc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 1.8);
-
-          subGain.gain.setValueAtTime(0.8, ctx.currentTime);
-          subGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
-
-          subOsc.connect(subGain);
-          subGain.connect(ctx.destination);
-          subOsc.start();
-          subOsc.stop(ctx.currentTime + 2.0);
-
-          // B. Parasites radio / Glitch Noise
-          const bufferSize = ctx.sampleRate * 0.5;
-          const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-          const output = noiseBuffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-          }
-
-          const whiteNoise = ctx.createBufferSource();
-          whiteNoise.buffer = noiseBuffer;
-          const noiseGain = ctx.createGain();
-          noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
-          noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-
-          whiteNoise.connect(noiseGain);
-          noiseGain.connect(ctx.destination);
-          whiteNoise.start();
-
-        } catch (e) {
-          console.log("Audio désactivé ou bloqué par le navigateur");
-        }
-      }
-
-      // 6. ANIMATION VISUELLE CANVAS (Effet d'Onde & Parasites)
-      const canvas = document.getElementById('fx-canvas');
-      const ctxCanvas = canvas.getContext('2d');
-
-      function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-      window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
-
-      let fxActive = false;
-      let waveRadius = 0;
-
-      function triggerCanvasFX() {
-        fxActive = true;
-        waveRadius = 0;
-        let frames = 0;
-
-        function animate() {
-          if (!fxActive) return;
-          ctxCanvas.clearRect(0, 0, canvas.width, canvas.height);
-
-          // Parasites Glitch
-          ctxCanvas.fillStyle = 'rgba(255, 0, 51, 0.15)';
-          for (let i = 0; i < 15; i++) {
-            const y = Math.random() * canvas.height;
-            const h = Math.random() * 6;
-            ctxCanvas.fillRect(0, y, canvas.width, h);
-          }
-
-          // Onde de choc rouge
-          ctxCanvas.beginPath();
-          ctxCanvas.arc(canvas.width / 2, canvas.height / 2, waveRadius, 0, Math.PI * 2);
-          ctxCanvas.strokeStyle = `rgba(255, 0, 51, ${1 - waveRadius / (canvas.width * 0.8)})`;
-          ctxCanvas.lineWidth = 4;
-          ctxCanvas.stroke();
-
-          waveRadius += 12;
-          frames++;
-
-          if (waveRadius < canvas.width * 0.8) {
-            requestAnimationFrame(animate);
-          } else {
-            ctxCanvas.clearRect(0, 0, canvas.width, canvas.height);
-            fxActive = false;
-          }
-        }
-        animate();
-      }
-
-      // 7. DÉCLENCHEMENT GLOBAL DE L'IMPULSION
-      function runFullHalloweenSequence() {
-        if ("vibrate" in navigator) {
-          navigator.vibrate([150, 40, 150, 40, 600]);
+      // ==========================================
+      // 5. ANIMATIONS GSAP & DÉCLENCHEMENT SPECTRALE
+      // ==========================================
+      function triggerSpectralSequence() {
+        // Vibrations Haptiques complexes
+        if ('vibrate' in navigator) {
+          navigator.vibrate([100, 30, 100, 30, 300, 50, 500]);
         }
 
-        playEerieImpulseSound();
-        triggerCanvasFX();
+        // Effets Audio
+        audioEngine.playHeartbeat();
+        setTimeout(() => audioEngine.playGlitchNoise(), 150);
+        setTimeout(() => audioEngine.playDarkDrone(3.0), 300);
 
-        const container = document.getElementById('main-container');
-        container.classList.add('shake');
-        setTimeout(() => container.classList.remove('shake'), 500);
+        // Flash & Shake GSAP
+        gsap.to("#flash", { opacity: 0.8, duration: 0.05, yoyo: true, repeat: 3, ease: "power2.inOut" });
+        gsap.fromTo("#hud", 
+          { x: -10, y: 5 }, 
+          { x: 10, y: -5, duration: 0.05, repeat: 8, yoyo: true, ease: "rough" }
+        );
+
+        // Réaction de l'artefact 3D (Accélération & Couleur Vert Spectral)
+        speed = 0.08;
+        mat.color.setHex(0x00ff66);
+        particlesMat.color.setHex(0x00ff66);
+
+        setTimeout(() => {
+          speed = 0.008;
+        }, 3000);
       }
 
-      // 8. EFFET MACHINES À ÉCRIRE POUR LA CONSOLE
-      function typeWriter(text, elementId, speed = 25) {
-        const el = document.getElementById(elementId);
-        el.innerHTML = "";
+      // Machine à écrire pour la console
+      function typeTerminalText(text) {
+        const target = document.getElementById('terminal-content');
+        target.innerHTML = "> ";
         let i = 0;
         function type() {
           if (i < text.length) {
-            el.innerHTML += text.charAt(i);
+            target.innerHTML += text.charAt(i);
             i++;
-            setTimeout(type, speed);
+            if(i % 3 === 0) audioEngine.playGlitchNoise();
+            setTimeout(type, 20);
           }
         }
         type();
       }
 
-      // 9. VALIDATION & SYNCHRO SUPABASE
-      const targetCard = document.getElementById('target-card');
+      // ==========================================
+      // 6. DÉVERROUILLAGE DU PUITS & SUPABASE
+      // ==========================================
+      const targetBox = document.getElementById('target-box');
       const targetStatus = document.getElementById('target-status');
-      const stroboBtn = document.getElementById('trigger-strobo-btn');
+      const btnTrigger = document.getElementById('btn-trigger');
 
-      async function validatePuitsMairie() {
-        targetCard.classList.add('active');
-        targetStatus.innerText = "SCEAU DÉVERROUILLÉ — RÉSEAU ACTIF";
-        targetStatus.style.color = "#00ff66";
+      async function unlockPuitsMairie() {
+        targetBox.classList.add('captured');
+        targetStatus.innerText = "SCEAU VALIDE — RÉSEAU SOUTERRAIN ACTIF";
+        document.getElementById('3d-status').innerText = "ARTEFACT : ALIGNÉ";
+        document.getElementById('3d-status').style.background = "rgba(0,255,102,0.3)";
 
-        typeWriter("ANOMALIE SOUTERRAINE DÉTECTÉE.\n> Connexion au réseau des anciens puits établie.\n> Première impulsion spectrale émise.", "terminal-content");
+        typeTerminalText("Sceau rituel identifié.\n> Connexion au réseau des canalisations ancestrales établie.\n> Impulsion spectrale prête à l'émission.");
 
-        stroboBtn.style.display = "block";
-        runFullHalloweenSequence();
+        btnTrigger.style.display = "block";
+        gsap.from("#btn-trigger", { scale: 0.8, opacity: 0, duration: 0.6, ease: "back.out(1.7)" });
 
-        // Enregistrement
+        triggerSpectralSequence();
+
+        // Enregistrement de la balise dans Supabase
         try {
           let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
           if (!localTokens.includes('puits_mairie')) localTokens.push('puits_mairie');
@@ -476,23 +584,23 @@
             updated_at: new Date().toISOString()
           });
         } catch (e) {
-          console.error("Erreur Supabase :", e);
+          console.error("Erreur de synchronisation Supabase :", e);
         }
       }
 
-      // 10. LECTURE DU SCAN NFC (?token=puits_mairie)
+      // Interception du paramètre NFC (?token=puits_mairie)
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
 
       if (token === 'puits_mairie' || token === 'balise2') {
-        validatePuitsMairie();
+        unlockPuitsMairie();
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      stroboBtn.addEventListener('click', () => {
-        runFullHalloweenSequence();
-        const terminalContent = document.getElementById('terminal-content');
-        terminalContent.innerHTML += `<br><span style="color:#00ff66;">> ONDE RE-SOUFFLÉE DANS LE RÉSEAU SOUTERRAIN.</span>`;
+      // Clic sur le bouton d'impulsion
+      btnTrigger.addEventListener('click', () => {
+        triggerSpectralSequence();
+        typeTerminalText("ONDE DE CHOC SPECTRALE RÉÉMISE DANS LE RÉSEAU SOUTERRAIN.");
       });
     </script>
   </body>
