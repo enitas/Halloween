@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-    <!-- CDN Librairies (Three.js, GSAP, Howler, Supabase, Leaflet) -->
+    <!-- CDN Librairies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
@@ -23,9 +23,8 @@
         --red-blood: #ff0033;
         --red-glow: #ff0033aa;
         --green-spectral: #00ff66;
-        --yellow-warn: #ffcc00;
         --bg-void: #020102;
-        --border-hud: rgba(255, 0, 51, 0.4);
+        --border-hud: rgba(255, 0, 51, 0.45);
       }
 
       * { box-sizing: border-box; user-select: none; }
@@ -43,7 +42,6 @@
         overflow-x: hidden;
       }
 
-      /* FX Vignette & Overlay CRT */
       .crt-overlay {
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
@@ -54,13 +52,12 @@
         z-index: 100;
       }
 
-      /* Container Principal HUD */
       .hud-container {
         width: 100%;
         max-width: 480px;
         background: rgba(10, 2, 4, 0.94);
         border: 1px solid var(--border-hud);
-        box-shadow: 0 0 35px rgba(255, 0, 51, 0.2), inset 0 0 15px rgba(255, 0, 51, 0.1);
+        box-shadow: 0 0 35px rgba(255, 0, 51, 0.25), inset 0 0 15px rgba(255, 0, 51, 0.1);
         padding: 14px;
         border-radius: 4px;
         position: relative;
@@ -68,7 +65,6 @@
         margin-top: 5px;
       }
 
-      /* Coins HUD Style Tactique */
       .corner-tl, .corner-tr, .corner-bl, .corner-br {
         position: absolute;
         width: 12px; height: 12px;
@@ -81,7 +77,6 @@
       .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 3px 3px; }
       .corner-br { bottom: -1px; right: -1px; border-width: 0 3px 3px 0; }
 
-      /* En-tête */
       .header-title {
         font-family: 'Cinzel', serif;
         font-weight: 900;
@@ -106,7 +101,6 @@
         padding-bottom: 5px;
       }
 
-      /* CHRONOMÈTRE DE PRESSION SPECTRALE */
       .timer-box {
         background: rgba(25, 0, 5, 0.9);
         border: 1px solid var(--red-blood);
@@ -116,7 +110,6 @@
         text-align: center;
         box-shadow: inset 0 0 10px rgba(255,0,51,0.2);
         position: relative;
-        overflow: hidden;
       }
 
       .timer-box.critical {
@@ -163,7 +156,6 @@
         transition: width 0.2s linear;
       }
 
-      /* Canvas 3D */
       #canvas-3d-wrapper {
         width: 100%;
         height: 150px;
@@ -194,7 +186,6 @@
         pointer-events: none;
       }
 
-      /* Carte & Radar */
       .map-wrapper {
         position: relative;
         border: 1px solid var(--border-hud);
@@ -219,12 +210,11 @@
         background: #050102;
       }
 
-      /* Filtre Sombre Rouge Sang pour la carte Esri (Pas besoin de clé API) */
+      /* Filtre sombre haute résolution sur la carte */
       .leaflet-tile {
-        filter: brightness(0.45) invert(1) contrast(1.7) hue-rotate(315deg) saturate(2.8) !important;
+        filter: brightness(0.4) invert(1) contrast(1.8) hue-rotate(320deg) saturate(2.5) !important;
       }
 
-      /* Cible Box */
       .target-box {
         background: rgba(20, 3, 6, 0.85);
         border: 1px dashed var(--red-blood);
@@ -265,7 +255,6 @@
         color: var(--green-spectral);
       }
 
-      /* Terminal Console */
       .terminal-box {
         background: #000;
         border: 1px solid rgba(255, 0, 51, 0.3);
@@ -278,7 +267,6 @@
         margin-bottom: 12px;
       }
 
-      /* Bouton d'Action Tactique */
       .btn-impulse {
         width: 100%;
         background: linear-gradient(180deg, #ff1a40 0%, #a00020 100%);
@@ -295,11 +283,6 @@
         display: none;
       }
 
-      .btn-impulse:active {
-        transform: scale(0.98);
-      }
-
-      /* Flash Screen Overlay */
       .flash-screen {
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
@@ -327,7 +310,6 @@
         <span>SOUSTERRAIN v4.9</span>
       </div>
 
-      <!-- Chronomètre de Pression -->
       <div class="timer-box" id="timer-box">
         <div class="timer-label" id="timer-label">CONFINEMENT ANOMALIE DANS</div>
         <div class="timer-digits" id="timer-digits">15:00.00</div>
@@ -336,13 +318,11 @@
         </div>
       </div>
 
-      <!-- Visualiseur 3D Artefact -->
       <div id="canvas-3d-wrapper">
         <div class="canvas-badge" id="3d-status">ARTEFACT 3D : RECHERCHE</div>
         <canvas id="three-canvas"></canvas>
       </div>
 
-      <!-- Carte Radar GPS Esri -->
       <div class="map-wrapper">
         <div class="map-header">
           <span id="gps-status">GPS : ACQUISITION DU SIGNAL...</span>
@@ -351,26 +331,20 @@
         <div id="map"></div>
       </div>
 
-      <!-- Cible Puits Mairie -->
       <div class="target-box" id="target-box">
         <div class="target-title">PUITS DE LA MAIRIE [SECTEUR 02]</div>
         <div class="target-coords">GPS: N 47° 11,085' E 2° 36,823'</div>
         <div class="target-status-text" id="target-status">RECHERCHE DU SCEAU NFC...</div>
       </div>
 
-      <!-- Console Terminal -->
       <div class="terminal-box" id="terminal">
         <div id="terminal-content">> Localisez le Puits de la Mairie avant l'expiration du délai et scannez la puce NFC pour activer le canal...</div>
       </div>
 
-      <!-- Bouton d'Impulsion -->
       <button class="btn-impulse" id="btn-trigger">ÉMETTRE L'IMPULSION SPECTRALE</button>
     </div>
 
     <script>
-      // ==========================================
-      // 1. CONFIGURATION SUPABASE & ÉQUIPE
-      // ==========================================
       const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
       const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
       const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -382,10 +356,8 @@
         lng: 2.613717
       };
 
-      // ==========================================
-      // 2. CHRONOMÈTRE DE PRESSION SPECTRALE (15 min)
-      // ==========================================
-      const TOTAL_TIME_SEC = 15 * 60; // 15 minutes en secondes
+      // Chronomètre 15 min
+      const TOTAL_TIME_SEC = 15 * 60;
       const storageKey = `act2_timer_start_${currentTeam}`;
       
       let startTime = localStorage.getItem(storageKey);
@@ -409,76 +381,30 @@
         const secs = Math.floor(remainingSec % 60);
         const ms = Math.floor((remainingSec % 1) * 100);
 
-        const formattedMins = String(mins).padStart(2, '0');
-        const formattedSecs = String(secs).padStart(2, '0');
-        const formattedMs = String(ms).padStart(2, '0');
+        timerDigits.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+        timerFill.style.width = `${(remainingSec / TOTAL_TIME_SEC) * 100}%`;
 
-        timerDigits.innerText = `${formattedMins}:${formattedSecs}.${formattedMs}`;
-
-        // Mise à jour de la barre
-        const percent = (remainingSec / TOTAL_TIME_SEC) * 100;
-        timerFill.style.width = `${percent}%`;
-
-        // Pression sous les 3 minutes
         if (remainingSec <= 180 && remainingSec > 0) {
           timerBox.classList.add('critical');
-          if (Math.floor(remainingSec * 2) % 2 === 0) {
-            playBeepSound(800, 0.05);
-          }
         }
 
-        // Expiration du temps
         if (remainingSec <= 0 && !timerExpired) {
           timerExpired = true;
           timerDigits.innerText = "00:00.00";
-          timerBox.classList.add('critical');
           document.getElementById('timer-label').innerText = "ANOMALIE LIBÉRÉE — CONFINEMENT ÉCHOUÉ";
           document.getElementById('terminal-content').innerText = "> CRITIQUE : Le puits a débordé. Les créatures se propagent dans Rians...";
           soundImpact.play();
-          if ('vibrate' in navigator) navigator.vibrate([500, 100, 500, 100, 1000]);
           return;
         }
 
-        if (!timerExpired) {
-          requestAnimationFrame(updateTimer);
-        }
+        if (!timerExpired) requestAnimationFrame(updateTimer);
       }
       requestAnimationFrame(updateTimer);
 
-      // ==========================================
-      // 3. SOUND DESIGN CINÉMA (Howler.js + Web Audio)
-      // ==========================================
-      const soundImpact = new Howl({
-        src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'],
-        volume: 1.0
-      });
-
-      const soundGlitch = new Howl({
-        src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'],
-        volume: 0.75
-      });
-
-      const soundDrone = new Howl({
-        src: ['https://assets.mixkit.co/active_storage/sfx/2673/2673-preview.mp3'],
-        volume: 0.5
-      });
-
-      // Bip de secours synthétisé
-      let audioCtx = null;
-      function playBeepSound(freq = 600, duration = 0.08) {
-        try {
-          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start();
-          osc.stop(audioCtx.currentTime + duration);
-        } catch(e) {}
-      }
+      // Audio
+      const soundImpact = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'], volume: 1.0 });
+      const soundGlitch = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'], volume: 0.75 });
+      const soundDrone = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2673/2673-preview.mp3'], volume: 0.5 });
 
       function playCinematicImpulse() {
         soundImpact.play();
@@ -486,12 +412,9 @@
         setTimeout(() => soundDrone.play(), 450);
       }
 
-      // ==========================================
-      // 4. ARTEFACT 3D WEBGL (THREE.JS)
-      // ==========================================
+      // 3D Artefact
       const wrapper = document.getElementById('canvas-3d-wrapper');
       const canvas3d = document.getElementById('three-canvas');
-
       const scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x020102, 0.16);
 
@@ -500,31 +423,16 @@
 
       const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
       renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      // Dodecaedre / Rune de Sang
       const geo = new THREE.DodecahedronGeometry(1.0, 0);
       const mat = new THREE.MeshBasicMaterial({ color: 0xff0033, wireframe: true });
       const runeCore = new THREE.Mesh(geo, mat);
       scene.add(runeCore);
 
-      // Noyau Interne
       const innerGeo = new THREE.OctahedronGeometry(0.55, 0);
       const innerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const innerCore = new THREE.Mesh(innerGeo, innerMat);
       scene.add(innerCore);
-
-      // Particules d'éther
-      const particlesGeo = new THREE.BufferGeometry();
-      const count = 100;
-      const posArray = new Float32Array(count * 3);
-      for(let i=0; i<count*3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 5.5;
-      }
-      particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-      const particlesMat = new THREE.PointsMaterial({ size: 0.03, color: 0xff2244, transparent: true, opacity: 0.8 });
-      const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
-      scene.add(particlesMesh);
 
       let speed = 0.008;
       function animate3D() {
@@ -532,29 +440,18 @@
         runeCore.rotation.x += speed;
         runeCore.rotation.y += speed * 1.4;
         innerCore.rotation.y -= speed * 1.8;
-        particlesMesh.rotation.y += 0.002;
         renderer.render(scene, camera);
       }
       animate3D();
 
-      window.addEventListener('resize', () => {
-        camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
-      });
-
-      // ==========================================
-      // 5. CARTE LEAFLET SOMBRE (ESRI DARK GRAY)
-      // ==========================================
+      // Carte Leaflet à Haute Résolution
       const map = L.map('map', { zoomControl: false }).setView([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], 18);
 
-      // Layer ESRI Dark (Sans API Key)
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 18,
-        attribution: 'Esri'
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: 'OSM'
       }).addTo(map);
 
-      // Marqueur Puits
       const puitsIcon = L.divIcon({
         className: 'custom-puits-icon',
         html: `<div style="width:16px;height:16px;background:#ff0033;border-radius:50%;box-shadow:0 0 15px #ff0033;border:2px solid #fff;"></div>`,
@@ -564,7 +461,6 @@
       L.marker([PUITS_MAIRIE.lat, PUITS_MAIRIE.lng], { icon: puitsIcon }).addTo(map);
 
       let playerMarker = null;
-
       if ('geolocation' in navigator) {
         navigator.geolocation.watchPosition((pos) => {
           const lat = pos.coords.latitude;
@@ -573,43 +469,24 @@
           document.getElementById('gps-acc').innerText = `±${Math.round(pos.coords.accuracy)}m`;
 
           if (!playerMarker) {
-            playerMarker = L.circleMarker([lat, lng], {
-              color: '#00ff66',
-              fillColor: '#00ff66',
-              fillOpacity: 1,
-              radius: 5
-            }).addTo(map);
+            playerMarker = L.circleMarker([lat, lng], { color: '#00ff66', fillColor: '#00ff66', fillOpacity: 1, radius: 5 }).addTo(map);
           } else {
             playerMarker.setLatLng([lat, lng]);
           }
         }, null, { enableHighAccuracy: true });
       }
 
-      // ==========================================
-      // 6. ANIMATIONS & SÉQUENCE DE DÉCLENCHEMENT
-      // ==========================================
       function triggerSpectralSequence() {
-        if ('vibrate' in navigator) {
-          navigator.vibrate([120, 30, 120, 30, 400, 50, 600]);
-        }
-
+        if ('vibrate' in navigator) navigator.vibrate([120, 30, 120, 30, 400]);
         playCinematicImpulse();
+        gsap.to("#flash", { opacity: 0.85, duration: 0.05, yoyo: true, repeat: 3 });
+        gsap.fromTo("#hud", { x: -12, y: 6 }, { x: 12, y: -6, duration: 0.05, repeat: 8, yoyo: true });
 
-        gsap.to("#flash", { opacity: 0.85, duration: 0.05, yoyo: true, repeat: 3, ease: "power2.inOut" });
-        gsap.fromTo("#hud", 
-          { x: -12, y: 6 }, 
-          { x: 12, y: -6, duration: 0.05, repeat: 8, yoyo: true, ease: "rough" }
-        );
-
-        // Réaction de l'objet 3D (Devient Vert Spectral)
         speed = 0.07;
         mat.color.setHex(0x00ff66);
-        particlesMat.color.setHex(0x00ff66);
-
         setTimeout(() => { speed = 0.008; }, 3000);
       }
 
-      // Machine à écrire
       function typeTerminalText(text) {
         const target = document.getElementById('terminal-content');
         target.innerHTML = "> ";
@@ -618,34 +495,23 @@
           if (i < text.length) {
             target.innerHTML += text.charAt(i);
             i++;
-            if (i % 4 === 0) soundGlitch.play();
             setTimeout(type, 18);
           }
         }
         type();
       }
 
-      // ==========================================
-      // 7. DÉVERROUILLAGE NFC & SYNCHRO SUPABASE
-      // ==========================================
-      const targetBox = document.getElementById('target-box');
-      const targetStatus = document.getElementById('target-status');
-      const btnTrigger = document.getElementById('btn-trigger');
-
       async function unlockPuitsMairie() {
-        targetBox.classList.add('captured');
-        targetStatus.innerText = "SCEAU VALIDE — RÉSEAU ACTIF";
+        document.getElementById('target-box').classList.add('captured');
+        document.getElementById('target-status').innerText = "SCEAU VALIDE — RÉSEAU ACTIF";
         document.getElementById('3d-status').innerText = "ARTEFACT : ALIGNÉ";
         document.getElementById('3d-status').style.background = "rgba(0,255,102,0.35)";
 
-        typeTerminalText("Sceau rituel validé !\n> Connexion au réseau des canalisations ancestrales établie.\n> Prêt pour l'impulsion spectrale.");
-
-        btnTrigger.style.display = "block";
-        gsap.from("#btn-trigger", { scale: 0.8, opacity: 0, duration: 0.5, ease: "back.out(1.7)" });
+        typeTerminalText("Sceau rituel validé !\n> Connexion au réseau des canalisations ancestrales établie.");
+        document.getElementById('btn-trigger').style.display = "block";
 
         triggerSpectralSequence();
 
-        // Enregistrement dans Supabase
         try {
           let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
           if (!localTokens.includes('puits_mairie')) localTokens.push('puits_mairie');
@@ -657,21 +523,17 @@
             updated_at: new Date().toISOString()
           });
         } catch (e) {
-          console.error("Erreur de synchronisation Supabase :", e);
+          console.error(e);
         }
       }
 
-      // Détection de la puce NFC (?token=puits_mairie)
       const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-
-      if (token === 'puits_mairie' || token === 'balise2') {
+      if (urlParams.get('token') === 'puits_mairie' || urlParams.get('token') === 'balise2') {
         unlockPuitsMairie();
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // Clic sur l'impulsion
-      btnTrigger.addEventListener('click', () => {
+      document.getElementById('btn-trigger').addEventListener('click', () => {
         triggerSpectralSequence();
         typeTerminalText("ONDE DE CHOC SPECTRALE RÉÉMISE DANS LE SOUSTERRAIN DE RIANS.");
       });
