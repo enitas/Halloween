@@ -11,6 +11,8 @@
       --blood-red: #ff0033;
       --crimson-dark: #800014;
       --blood-glow: rgba(255, 0, 51, 0.6);
+      --victory-green: #00ffcc;
+      --victory-glow: rgba(0, 255, 204, 0.4);
       --text-main: #ffe6ea;
       --text-dim: #996670;
     }
@@ -29,7 +31,7 @@
       min-height: 100vh;
     }
 
-    .act-container {
+    .act-container, .victory-container {
       width: 100%;
       max-width: 440px;
       background: var(--panel-bg);
@@ -47,6 +49,70 @@
       top: 0; left: 0; right: 0;
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--blood-red), transparent);
+    }
+
+    /* Styles Écran de Victoire */
+    .victory-container {
+      display: none;
+      border-color: var(--victory-green);
+      box-shadow: 0 0 35px var(--victory-glow), inset 0 0 15px rgba(0, 255, 204, 0.1);
+      text-align: center;
+    }
+
+    .victory-container::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--victory-green), transparent);
+    }
+
+    .victory-title {
+      font-size: 18px;
+      color: var(--victory-green);
+      text-shadow: 0 0 10px var(--victory-green);
+      letter-spacing: 2px;
+      margin: 10px 0;
+    }
+
+    .victory-message {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #fff;
+      margin-bottom: 20px;
+      background: rgba(0, 255, 204, 0.05);
+      border: 1px solid rgba(0, 255, 204, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .camera-box {
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--victory-green);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #webcam, #photo-preview {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    #photo-preview {
+      display: none;
+    }
+
+    canvas#photo-canvas {
+      display: none;
     }
 
     .act-header {
@@ -130,7 +196,7 @@
       overflow: hidden;
     }
 
-    canvas {
+    canvas#visualizer {
       width: 100%;
       height: 100%;
       display: block;
@@ -235,12 +301,21 @@
       letter-spacing: 1px;
       cursor: pointer;
       transition: all 0.2s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-block;
     }
 
     .btn-main {
       background: var(--blood-red);
       color: #fff;
       box-shadow: 0 0 15px var(--blood-glow);
+    }
+
+    .btn-victory {
+      background: var(--victory-green);
+      color: #000;
+      box-shadow: 0 0 15px var(--victory-glow);
     }
 
     .btn-main.recording {
@@ -271,7 +346,8 @@
 </head>
 <body>
 
-  <div class="act-container">
+  <!-- ÉCRAN DU RITUEL (ACTE VI) -->
+  <div class="act-container" id="act-screen">
     <header class="act-header">
       <div class="status-badge">
         <span class="pulse-dot"></span>
@@ -329,6 +405,27 @@
     <div class="btn-group">
       <button class="btn btn-main" id="start-btn">🎙 INVOKER L'ÉCHO & ACTIVER LA RADIO</button>
       <button class="btn btn-sec" id="sim-btn">⚡ SIMULER UN CYCLE (TEST SANS MICRO)</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN DE VICTOIRE & PHOTO -->
+  <div class="victory-container" id="victory-screen">
+    <h2 class="victory-title">🏆 ENQUÊTE RÉSOLUE !</h2>
+    <p class="victory-message">
+      Bravo ! Vous avez brisé le psaume maudit et apporté la paix à Rians pour les années à venir... Le silence est enfin revenu sur les ondes.
+    </p>
+
+    <div class="camera-box">
+      <video id="webcam" autoplay playsinline></video>
+      <img id="photo-preview" alt="Photo de l'équipe victorieuse">
+      <canvas id="photo-canvas"></canvas>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-victory" id="snap-btn">📸 PRENDRE LA PHOTO D'ÉQUIPE</button>
+      <button class="btn btn-sec" id="retake-btn" style="display: none;">🔄 REPRENDRE UNE PHOTO</button>
+      <button class="btn btn-main" id="share-btn" style="display: none; background: #00ffcc; color: #000;">📲 PARTAGER LA VICTOIRE</button>
+      <a href="index.html" class="btn btn-sec">🏠 RETOUR À L'ACCUEIL</a>
     </div>
   </div>
 
@@ -452,9 +549,12 @@
     let detectedInCycle = new Set();
 
     let audioCtx, analyser, micStream, animId;
+    let cameraStream = null;
     let recognition;
     const radioSynth = new RadioStaticSynth();
 
+    const actScreen = document.getElementById('act-screen');
+    const victoryScreen = document.getElementById('victory-screen');
     const startBtn = document.getElementById('start-btn');
     const simBtn = document.getElementById('sim-btn');
     const feedback = document.getElementById('feedback');
@@ -467,6 +567,14 @@
     const noiseValLabel = document.getElementById('noise-val');
     const freqShiftInput = document.getElementById('freq-shift');
     const freqValLabel = document.getElementById('freq-val');
+
+    // Éléments Webcam / Photo
+    const webcamElem = document.getElementById('webcam');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoCanvas = document.getElementById('photo-canvas');
+    const snapBtn = document.getElementById('snap-btn');
+    const retakeBtn = document.getElementById('retake-btn');
+    const shareBtn = document.getElementById('share-btn');
 
     noiseVolInput.addEventListener('input', (e) => {
       const vol = e.target.value / 100;
@@ -618,16 +726,19 @@
 
     function completeRitual() {
       stopListening();
-      feedback.textContent = "SILENCE RADIO TOTAL. L'ENTITÉ DE L'EAU EST BANNIE !";
-      feedback.style.color = "#00ffcc";
-      startBtn.style.display = "none";
-      simBtn.style.display = "none";
 
-      // Lancement du bruitage sonore de victoire (cri_victoire.mp3)
+      // Jouer le bruitage sonore de victoire
       const victorySfx = new Audio('cri_victoire.mp3');
       victorySfx.play().catch(err => {
-        console.warn("Impossible de lire l'audio : vérifiez que 'cri_victoire.mp3' est présent.", err);
+        console.warn("Impossible de lire l'audio 'cri_victoire.mp3'.", err);
       });
+
+      // Basculer l'affichage vers l'écran de victoire
+      actScreen.style.display = 'none';
+      victoryScreen.style.display = 'block';
+
+      // Lancer la caméra
+      startCamera();
     }
 
     async function startListening() {
@@ -672,6 +783,82 @@
       startBtn.classList.remove('recording');
       startBtn.textContent = "🎙 INVOKER L'ÉCHO & ACTIVER LA RADIO";
     }
+
+    // ========================================================
+    // 3. GESTION CAMERA & CAPTURE PHOTO
+    // ========================================================
+    async function startCamera() {
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
+          audio: false 
+        });
+        webcamElem.srcObject = cameraStream;
+      } catch (err) {
+        console.error("Erreur d'accès à la caméra :", err);
+      }
+    }
+
+    snapBtn.addEventListener('click', () => {
+      if (!webcamElem.srcObject) return;
+
+      const w = webcamElem.videoWidth || 640;
+      const h = webcamElem.videoHeight || 480;
+      photoCanvas.width = w;
+      photoCanvas.height = h;
+
+      const pCtx = photoCanvas.getContext('2d');
+      pCtx.drawImage(webcamElem, 0, 0, w, h);
+
+      // Ajouter un petit filigrane "Rians" sur la photo
+      pCtx.fillStyle = "rgba(0, 255, 204, 0.8)";
+      pCtx.font = "bold 16px Courier New";
+      pCtx.fillText("PAIX À RIANS — ÉQUIPE DE VICTOIRE", 15, h - 20);
+
+      const dataUrl = photoCanvas.toDataURL('image/png');
+      photoPreview.src = dataUrl;
+
+      // Masquer le flux vidéo et afficher l'image prise
+      webcamElem.style.display = 'none';
+      photoPreview.style.display = 'block';
+
+      snapBtn.style.display = 'none';
+      retakeBtn.style.display = 'inline-block';
+      shareBtn.style.display = 'inline-block';
+    });
+
+    retakeBtn.addEventListener('click', () => {
+      photoPreview.style.display = 'none';
+      webcamElem.style.display = 'block';
+
+      snapBtn.style.display = 'inline-block';
+      retakeBtn.style.display = 'none';
+      shareBtn.style.display = 'none';
+    });
+
+    shareBtn.addEventListener('click', async () => {
+      photoCanvas.toBlob(async (blob) => {
+        const file = new File([blob], 'victoire-rians.png', { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "Enquête de Rians résolue !",
+              text: "Nous avons résolu l'enquête et apporté la paix à Rians !",
+              files: [file]
+            });
+          } catch (e) {
+            console.warn("Partage annulé ou échoué.", e);
+          }
+        } else {
+          // Alternative : Téléchargement automatique si le partage natif n'est pas supporté
+          const a = document.createElement('a');
+          a.href = photoPreview.src;
+          a.download = 'victoire-rians.png';
+          a.click();
+        }
+      }, 'image/png');
+    });
 
     startBtn.addEventListener('click', () => {
       if (!isListening) startListening();
