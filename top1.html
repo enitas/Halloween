@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L'ÉCHO DE L'EAU MORTE | Escape Game Horrifique Urbain à Rians (18220)</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        blood: {
+                            DEFAULT: '#ff1a1a',
+                            dark: '#800000',
+                            deep: '#4a0000',
+                            glow: 'rgba(255, 26, 26, 0.4)'
+                        },
+                        void: '#050505',
+                        ash: '#0d0d0d',
+                        iron: '#1a1a1a'
+                    },
+                    fontFamily: {
+                        serif: ['Cinzel', 'Georgia', 'serif'],
+                        mono: ['Fira Code', 'Courier New', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Fira+Code:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Styles & Horror FX */
+        body {
+            background-color: #050505;
+            color: #d1d5db;
+            font-family: 'Cinzel', serif;
+            overflow-x: hidden;
+        }
+
+        .font-mono-hud {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Scanlines Overlay */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Blood Glow Animations */
+        @keyframes pulse-glow {
+            0%, 100% {
+                text-shadow: 0 0 10px #ff1a1a, 0 0 20px #800000, 0 0 30px #4a0000;
+            }
+            50% {
+                text-shadow: 0 0 20px #ff1a1a, 0 0 35px #ff1a1a, 0 0 50px #800000;
+            }
+        }
+
+        .glow-title {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+
+        /* Glitch Effect */
+        .glitch-hover:hover {
+            animation: glitch-anim 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        /* Dark Glassmorphism */
+        .glass-panel {
+            background: rgba(13, 13, 13, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(128, 0, 0, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .glass-panel-hover:hover {
+            border-color: rgba(255, 26, 26, 0.6);
+            box-shadow: 0 0 20px rgba(255, 26, 26, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a0000;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff1a1a;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen selection:bg-blood selection:text-white">
+
+    <!-- Background Canvas for Fog Particles -->
+    <canvas id="fog-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- CRT Scanline Screen Overlay -->
+    <div class="fixed inset-0 scanlines z-50 pointer-events-none"></div>
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 w-full glass-panel border-b border-blood-dark/40 px-4 py-3 sm:px-8">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="w-3 h-3 rounded-full bg-blood animate-ping"></span>
+                <span class="font-mono-hud text-xs tracking-widest text-red-500 uppercase">
+                    FRÉQUENCE HERTZIENNE ACTIVE • RIANS (18220)
+                </span>
+            </div>
+            
+            <!-- Audio Toggle Button -->
+            <button id="audio-toggle-btn" class="flex items-center space-x-2 px-3 py-1.5 rounded-md border border-blood-dark/50 bg-ash/80 text-xs font-mono-hud text-red-400 hover:text-white hover:border-blood transition-all">
+                <svg id="audio-icon-off" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.707 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                <svg id="audio-icon-on" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.707 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                <span id="audio-btn-label">AUDIO : OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative z-10 pt-16 pb-24 px-4 sm:px-8 max-w-6xl mx-auto text-center flex flex-col items-center justify-center min-h-[85vh]">
+        
+        <!-- Lat/Long HUD Tag -->
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blood-deep/40 border border-blood/30 text-red-400 font-mono-hud text-xs mb-8">
+            <span>COORDONNÉES CIBLE : 47°11'05"N 2°36'50"E</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-6xl md:text-8xl font-extrabold tracking-wider text-white glow-title glitch-hover mb-6 uppercase">
+            L'ÉCHO DE L'EAU MORTE
+        </h1>
+
+        <p class="text-lg sm:text-2xl text-gray-300 font-serif max-w-3xl mb-12 italic leading-relaxed">
+            « Le vieux lavoir de Rians a été rasé pour étouffer le mal. Ce soir, l'eau corrompue s'éveille dans le réseau des puits. »
+        </p>
+
+        <!-- Countdown Timer -->
+        <div class="w-full max-w-3xl glass-panel p-6 rounded-2xl mb-12 border-blood/40">
+            <h2 class="text-xs font-mono-hud text-red-500 uppercase tracking-widest mb-4">COMPTE À REBOURS AVANT RUPTURE DU SCELLÉ</h2>
+            <div class="grid grid-cols-4 gap-2 sm:gap-4 font-mono-hud text-center">
+                <div class="p-3 bg-ash/90 rounded-lg border border-blood-dark/30">
+                    <span id="timer-days" class="block text-2xl sm:text-5xl font-bold text-blood">00</span>
+                    <span class="text-[10px] sm:text-xs text-gray-400 uppercase">Jours</span>
+                </div>
+                <div class="p-3 bg-ash/90 rounded-lg border border-blood-dark/30">
+                    <span id="timer-hours" class="block text-2xl sm:text-5xl font-bold text-blood">00</span>
+                    <span class="text-[10px] sm:text-xs text-gray-400 uppercase">Heures</span>
+                </div>
+                <div class="p-3 bg-ash/90 rounded-lg border border-blood-dark/30">
+                    <span id="timer-minutes" class="block text-2xl sm:text-5xl font-bold text-blood">00</span>
+                    <span class="text-[10px] sm:text-xs text-gray-400 uppercase">Minutes</span>
+                </div>
+                <div class="p-3 bg-ash/90 rounded-lg border border-blood-dark/30">
+                    <span id="timer-seconds" class="block text-2xl sm:text-5xl font-bold text-blood">00</span>
+                    <span class="text-[10px] sm:text-xs text-gray-400 uppercase">Secondes</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action CTAs -->
+        <div class="flex flex-col sm:flex-row items-center gap-6 w-full max-w-md">
+            <button id="start-spectrometer-btn" class="w-full py-4 px-8 bg-gradient-to-r from-blood-deep via-blood-dark to-blood text-white font-bold tracking-widest rounded-xl shadow-lg hover:shadow-red-900/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-blood flex items-center justify-center space-x-3 group">
+                <svg class="w-5 h-5 text-red-300 group-hover:animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2m8-10h-2M4 12H2m15.364-6.364l-1.414 1.414M6.343 17.657l-1.414 1.414m12.728 0l-1.414-1.414M6.343 6.343L4.929 4.929"></path></svg>
+                <span>INVOQUER LE SPECTROMÈTRE</span>
+            </button>
+            
+            <a href="#codex" class="w-full py-4 px-8 glass-panel text-gray-300 hover:text-white font-mono-hud text-xs tracking-wider rounded-xl hover:border-blood transition-all text-center">
+                CONSULTER LE CODEX
+            </a>
+        </div>
+    </section>
+
+    <!-- Section: Narrative Codex & Audio Preview -->
+    <section id="codex" class="relative z-10 py-20 px-4 sm:px-8 border-t border-blood-dark/30 bg-ash/40">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="font-mono-hud text-xs text-red-500 uppercase tracking-widest block mb-2">// ARCHIVES PARANORMALES //</span>
+                <h2 class="text-3xl sm:text-5xl font-bold text-white tracking-wide">LE CODEX D'OMBRE DE RIANS</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <!-- Lore Description -->
+                <div class="space-y-6 text-gray-300 font-serif leading-relaxed">
+                    <p>
+                        En détruisant le lavoir municipal de Rians, les habitants pensaient effacer les massacres commis sous l'eau noire. Mais la pierre ne retient pas la malédiction. L'eau s'est infiltrée sous la commune, corrompant chaque puits, chaque source, chaque canalisation.
+                    </p>
+                    <p class="text-red-400 italic border-l-2 border-blood pl-4">
+                        « Ce soir d'Halloween, l'antenne télécom jouxtant le cimetière capte les fréquences de l'au-delà et les réinjecte dans vos smartphones. »
+                    </p>
+                    <p>
+                        Équipé de notre application WebAR et de votre capteur NFC, vous arpenterez les ruelles désertes de Rians pour traquer les sceaux manquants avant que la source ne réclame de nouvelles âmes.
+                    </p>
+                </div>
+
+                <!-- Soundscape Player -->
+                <div class="glass-panel p-8 rounded-2xl border-blood/30 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">ÉCHO #01 : LE SOUFFLE DU PUITS</h3>
+                            <p class="text-xs font-mono-hud text-gray-400">Enregistrement binaural local</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 rounded text-[10px] font-mono-hud">HQ MP3</span>
+                    </div>
+
+                    <!-- Visualizer Waveform Animation Simulation -->
+                    <div id="waveform-container" class="h-16 bg-ash rounded-lg border border-blood-dark/30 flex items-center justify-center space-x-1 p-2">
+                        <div class="wave-bar w-1.5 bg-blood-dark h-3 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-8 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-5 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-12 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-4 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-10 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-6 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-14 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-2 rounded"></div>
+                        <div class="wave-bar w-1.5 bg-blood-dark h-9 rounded"></div>
+                    </div>
+
+                    <button id="preview-audio-btn" class="w-full py-3 bg-iron hover:bg-blood-deep/50 border border-blood-dark/50 hover:border-blood text-red-400 hover:text-white rounded-lg font-mono-hud text-xs tracking-wider transition-all flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"></path></svg>
+                        <span>ÉCOUTER LE SIGNAL MAUDIT</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Arsenal & Hardware -->
+    <section class="relative z-10 py-20 px-4 sm:px-8 max-w-6xl mx-auto">
+        <div class="text-center mb-16">
+            <span class="font-mono-hud text-xs text-red-500 uppercase tracking-widest block mb-2">// ÉQUIPEMENT REQUIS //</span>
+            <h2 class="text-3xl sm:text-5xl font-bold text-white">L'ARSENAL DE SURVIE</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-panel glass-panel-hover p-6 rounded-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-lg bg-blood-deep/50 border border-blood/40 flex items-center justify-center text-red-400 mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">SMARTPHONE WEB-AR</h3>
+                <p class="text-xs text-gray-400 font-mono-hud leading-relaxed">
+                    Module NFC actif et appareil photo fonctionnel. Aucune application à télécharger : MindAR tourne dans votre navigateur.
+                </p>
+            </div>
+
+            <div class="glass-panel glass-panel-hover p-6 rounded-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-lg bg-blood-deep/50 border border-blood/40 flex items-center justify-center text-red-400 mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.707 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">ÉCOUTEURS BINAURAUX</h3>
+                <p class="text-xs text-gray-400 font-mono-hud leading-relaxed">
+                    Indispensables pour percevoir le son 3D, le radar d'approche et les fausses intrusions téléphoniques.
+                </p>
+            </div>
+
+            <div class="glass-panel glass-panel-hover p-6 rounded-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-lg bg-blood-deep/50 border border-blood/40 flex items-center justify-center text-red-400 mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 01-2 2h-0a2 2 0 01-2-2v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">TORCHE DE POCHE</h3>
+                <p class="text-xs text-gray-400 font-mono-hud leading-relaxed">
+                    Les ruelles de Rians plongent dans le noir absolu. Une source lumineuse garantit aussi la précision des scans WebAR.
+                </p>
+            </div>
+
+            <div class="glass-panel glass-panel-hover p-6 rounded-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-lg bg-blood-deep/50 border border-blood/40 flex items-center justify-center text-red-400 mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">GÉOLOCALISATION GPS</h3>
+                <p class="text-xs text-gray-400 font-mono-hud leading-relaxed">
+                    Autorisez le GPS haute précision pour déclencher les alertes de traque et localiser les puces masquées.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Interactive Map & Spots -->
+    <section class="relative z-10 py-20 px-4 sm:px-8 border-t border-blood-dark/30 bg-ash/60">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="font-mono-hud text-xs text-red-500 uppercase tracking-widest block mb-2">// CARTOGRAPHIE RITUIELLE //</span>
+                <h2 class="text-3xl sm:text-5xl font-bold text-white">LES POINTS D'INFILTRATION À RIANS</h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Spots List -->
+                <div class="space-y-3 lg:col-span-1">
+                    <button onclick="selectSpot(0)" class="spot-card w-full p-4 rounded-xl glass-panel text-left border-l-4 border-blood flex items-center justify-between hover:bg-blood-deep/30 transition-all">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">1. PARVIS DE L'ÉGLISE</h4>
+                            <p class="text-[10px] font-mono-hud text-red-400">47°11'137"N 2°36'777"E</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 text-[9px] font-mono-hud rounded">NFC / AR</span>
+                    </button>
+
+                    <button onclick="selectSpot(1)" class="spot-card w-full p-4 rounded-xl glass-panel text-left border-l-4 border-transparent flex items-center justify-between hover:bg-blood-deep/30 transition-all">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">2. PUITS MAIRIE</h4>
+                            <p class="text-[10px] font-mono-hud text-red-400">47°11'085"N 2°36'823"E</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 text-[9px] font-mono-hud rounded">NFC METAL</span>
+                    </button>
+
+                    <button onclick="selectSpot(2)" class="spot-card w-full p-4 rounded-xl glass-panel text-left border-l-4 border-transparent flex items-center justify-between hover:bg-blood-deep/30 transition-all">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">3. PONT OUATIER</h4>
+                            <p class="text-[10px] font-mono-hud text-red-400">47°11'218"N 2°36'745"E</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 text-[9px] font-mono-hud rounded">FACE TRACK</span>
+                    </button>
+
+                    <button onclick="selectSpot(3)" class="spot-card w-full p-4 rounded-xl glass-panel text-left border-l-4 border-transparent flex items-center justify-between hover:bg-blood-deep/30 transition-all">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">4. LE CALVAIRE</h4>
+                            <p class="text-[10px] font-mono-hud text-red-400">47°10'758"N 2°36'733"E</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 text-[9px] font-mono-hud rounded">IMAGE TARGET</span>
+                    </button>
+
+                    <button onclick="selectSpot(4)" class="spot-card w-full p-4 rounded-xl glass-panel text-left border-l-4 border-transparent flex items-center justify-between hover:bg-blood-deep/30 transition-all">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">5. GRILLE DU CIMETIÈRE</h4>
+                            <p class="text-[10px] font-mono-hud text-red-400">47°11'105"N 2°37'095"E</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 text-[9px] font-mono-hud rounded">SIGNAL EVP</span>
+                    </button>
+
+                    <button onclick="selectSpot(5)" class="spot-card w-full p-4 rounded-xl glass-panel text-left border-l-4 border-transparent flex items-center justify-between hover:bg-blood-deep/30 transition-all">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">6. L'ANCIEN LAVOIR</h4>
+                            <p class="text-[10px] font-mono-hud text-red-400">47°10'920"N 2°36'406"E</p>
+                        </div>
+                        <span class="px-2 py-1 bg-red-950 text-red-400 text-[9px] font-mono-hud rounded">SPECTRE 2.5D</span>
+                    </button>
+                </div>
+
+                <!-- Spot Detail Display Card -->
+                <div id="spot-detail-panel" class="lg:col-span-2 glass-panel p-8 rounded-2xl border-blood/40 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-blood-dark/30 pb-4 mb-6">
+                            <h3 id="spot-title" class="text-2xl font-bold text-white">PARVIS DE L'ÉGLISE</h3>
+                            <span id="spot-danger" class="px-3 py-1 bg-blood-deep text-red-200 font-mono-hud text-xs rounded-full border border-blood">DANGER : ÉLEVÉ</span>
+                        </div>
+                        <div class="space-y-4 font-mono-hud text-xs text-gray-300">
+                            <p><strong class="text-red-400">GPS :</strong> <span id="spot-coords">N 47° 11,137' E 2° 36,777'</span></p>
+                            <p><strong class="text-red-400">PROTOCOLE TECHNIQUE :</strong> <span id="spot-tech">Puce NTAG215 cachée sous le rebord intérieur de la margelle du puits.</span></p>
+                            <p><strong class="text-red-400">ANOMALIE DÉTECTÉE :</strong> <span id="spot-desc">La porte de l'église saigne en 3D à travers l'écran. Un symbole cryptique réclame le premier mot de passe.</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-4 border-t border-iron flex justify-between items-center text-[10px] font-mono-hud text-gray-500">
+                        <span>IDENTIFIANT CIBLE : #RIANS-NFC-01</span>
+                        <span>MODALITÉ : RECHERCHE DE SURFACE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="relative z-10 py-8 px-4 border-t border-blood-dark/30 text-center font-mono-hud text-xs text-gray-500">
+        <p>CONÇU PAR LE MIDNIGHT ARCHITECT POUR LA NUIT D'HALLOWEEN • RIANS (18220)</p>
+        <p class="mt-2 text-[10px] text-gray-600">EXPÉRIENCE NON LINÉAIRE SUR SITE PROPRIÉTÉ DU CAUCHEMAR</p>
+    </footer>
+
+    <!-- Terminal Diagnostic Modal (Game Launcher) -->
+    <div id="terminal-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl glass-panel p-6 sm:p-8 rounded-2xl border-blood text-left space-y-6">
+            <div class="flex items-center justify-between border-b border-blood-dark pb-4">
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-blood animate-ping"></span>
+                    <h3 class="font-mono-hud text-sm font-bold text-white tracking-widest uppercase">DIAGNOSTIC DU SPECTROMÈTRE</h3>
+                </div>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-white font-mono-hud text-xs">[ FERMER ]</button>
+            </div>
+
+            <!-- Terminal Log Window -->
+            <div id="terminal-logs" class="h-64 bg-black/90 p-4 rounded-lg border border-iron font-mono-hud text-xs space-y-2 overflow-y-auto text-green-400">
+                <p class="text-gray-500">> Initialisation des protocoles de détection...</p>
+            </div>
+
+            <!-- Launch Button -->
+            <button id="launch-game-btn" disabled class="w-full py-4 bg-iron text-gray-500 font-mono-hud text-xs font-bold tracking-widest rounded-xl cursor-not-allowed border border-gray-800 transition-all">
+                EN ATTENTE DU DIAGNOSTIC...
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Data for Rians Spots
+        const riansSpots = [
+            {
+                title: "1. PARVIS DE L'ÉGLISE",
+                coords: "N 47° 11,137' E 2° 36,777'",
+                danger: "DANGER : ÉLEVÉ",
+                tech: "Puce NTAG215 cachée sous la margelle du puits ou sous le banc adjacent.",
+                desc: "Scan de la porte de l'église via MindAR. Révélation du premier chiffre de sang gravé sur le bois virtuel.",
+                id: "#RIANS-NFC-01"
+            },
+            {
+                title: "2. PUITS MAIRIE",
+                coords: "N 47° 11,085' E 2° 36,823'",
+                danger: "DANGER : MODÉRÉ",
+                tech: "Puce Anti-Métal fixée au dos de la ferronnerie du puits.",
+                desc: "Analyse du réseau souterrain. Déclenchement de la première impulsion stroboscopique.",
+                id: "#RIANS-NFC-02"
+            },
+            {
+                title: "3. PONT OUATIER",
+                coords: "N 47° 11,218' E 2° 36,745'",
+                danger: "DANGER : CRITIQUE",
+                tech: "Face Tracking WebAR activé via la caméra frontale.",
+                desc: "Traversée sous haute tension. Défense de baisser les yeux sous peine de réinitialiser la progression.",
+                id: "#RIANS-AR-03"
+            },
+            {
+                title: "4. LE CALVAIRE",
+                coords: "N 47° 10,758' E 2° 36,733'",
+                danger: "DANGER : ÉLEVÉ",
+                tech: "Image Target MindAR sur le socle en pierre du Calvaire.",
+                desc: "Une matière noire virtuelle suinte de la croix. Alignement des symboles 3D nécessaire.",
+                id: "#RIANS-AR-04"
+            },
+            {
+                title: "5. GRILLE DU CIMETIÈRE",
+                coords: "N 47° 11,105' E 2° 37,095'",
+                danger: "DANGER : EXTRÊME",
+                tech: "Puce Anti-Métal sur la grille en fer forgé + Audio EVP.",
+                desc: "Captation de la fréquence hertzienne de l'antenne télécom. Écoute de la voix des morts.",
+                id: "#RIANS-EVP-05"
+            },
+            {
+                title: "6. L'ANCIEN LAVOIR",
+                coords: "N 47° 10,920' E 2° 36,406'",
+                danger: "DANGER : MORTEL",
+                tech: "Vidéo 2.5D Chroma Key (<a-video>) sur l'emplacement vide.",
+                desc: "Matérialisation du spectre du lavoir au-dessus des ruines. Rituel de fermeture finale.",
+                id: "#RIANS-FINAL-06"
+            }
+        ];
+
+        function selectSpot(index) {
+            const spot = riansSpots[index];
+            document.getElementById('spot-title').innerText = spot.title;
+            document.getElementById('spot-coords').innerText = spot.coords;
+            document.getElementById('spot-danger').innerText = spot.danger;
+            document.getElementById('spot-tech').innerText = spot.tech;
+            document.getElementById('spot-desc').innerText = spot.desc;
+
+            const cards = document.querySelectorAll('.spot-card');
+            cards.forEach((card, idx) => {
+                if(idx === index) {
+                    card.classList.add('border-blood');
+                    card.classList.remove('border-transparent');
+                } else {
+                    card.classList.remove('border-blood');
+                    card.classList.add('border-transparent');
+                }
+            });
+        }
+
+        // --- Configuration & Playlist Cloudinary d'Ambiance ---
+        const CLOUDINARY_BASE_URL = "https://res.cloudinary.com/vqe6ayzq/video/upload/";
+
+        const AMBIENT_PLAYLIST = [
+            `${CLOUDINARY_BASE_URL}Static-Pulse.mp3`,
+            `${CLOUDINARY_BASE_URL}Beneath_the_Reservoir.mp3`,
+            `${CLOUDINARY_BASE_URL}The_Rising_Pressure.mp3`,
+            `${CLOUDINARY_BASE_URL}The_Subterranean_Nursery.mp3`
+        ];
+
+        let currentTrackIndex = 0;
+        let bgAudio = new Audio(AMBIENT_PLAYLIST[currentTrackIndex]);
+        bgAudio.volume = 0.4;
+        bgAudio.preload = 'auto';
+
+        // Enchaînement automatique avec rechargement forcé (.load())
+        function playNextTrack() {
+            currentTrackIndex = (currentTrackIndex + 1) % AMBIENT_PLAYLIST.length;
+            bgAudio.src = AMBIENT_PLAYLIST[currentTrackIndex];
+            bgAudio.load(); // Indispensable pour réinitialiser le lecteur
+            bgAudio.play().catch(err => console.error("Erreur de lecture audio :", err));
+        }
+
+        bgAudio.addEventListener('ended', playNextTrack);
+
+        function toggleAmbientAudio() {
+            const btnLabel = document.getElementById('audio-btn-label');
+            const iconOn = document.getElementById('audio-icon-on');
+            const iconOff = document.getElementById('audio-icon-off');
+
+            if (bgAudio.paused) {
+                bgAudio.play().then(() => {
+                    btnLabel.innerText = "AUDIO : AMBIENT";
+                    iconOn.classList.remove('hidden');
+                    iconOff.classList.add('hidden');
+                }).catch(err => {
+                    console.error("Erreur lors de la lecture audio :", err);
+                });
+            } else {
+                bgAudio.pause();
+                btnLabel.innerText = "AUDIO : OFF";
+                iconOn.classList.add('hidden');
+                iconOff.classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('audio-toggle-btn').addEventListener('click', toggleAmbientAudio);
+
+        // --- Aperçu "SIGNAL MAUDIT" (Short MP3) ---
+        let previewAudio = null;
+
+        document.getElementById('preview-audio-btn').addEventListener('click', () => {
+            if (previewAudio && !previewAudio.paused) {
+                previewAudio.pause();
+                previewAudio.currentTime = 0;
+            }
+
+            previewAudio = new Audio('eau.mp3'); 
+            previewAudio.volume = 0.7;
+            previewAudio.play().catch(err => console.error("Erreur audio :", err));
+
+            const bars = document.querySelectorAll('.wave-bar');
+            bars.forEach(bar => {
+                bar.style.height = Math.floor(Math.random() * 40 + 10) + 'px';
+                bar.style.backgroundColor = '#ff1a1a';
+                setTimeout(() => {
+                    bar.style.height = '';
+                    bar.style.backgroundColor = '';
+                }, 1500);
+            });
+        });
+
+        // Countdown Timer Logic
+        function updateCountdown() {
+            const halloweenTarget = new Date('October 31, 2026 21:00:00').getTime();
+            const now = new Date().getTime();
+            const difference = halloweenTarget - now;
+
+            if (difference > 0) {
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+                document.getElementById('timer-days').innerText = String(days).padStart(2, '0');
+                document.getElementById('timer-hours').innerText = String(hours).padStart(2, '0');
+                document.getElementById('timer-minutes').innerText = String(minutes).padStart(2, '0');
+                document.getElementById('timer-seconds').innerText = String(seconds).padStart(2, '0');
+            }
+        }
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // Canvas Fog Particles Simulation
+        const canvas = document.getElementById('fog-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 150 + 50;
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.2 - 0.1;
+                this.opacity = Math.random() * 0.15 + 0.05;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < -100) this.x = canvas.width + 100;
+                if (this.x > canvas.width + 100) this.x = -100;
+                if (this.y < -100) this.y = canvas.height + 100;
+                if (this.y > canvas.height + 100) this.y = -100;
+            }
+            draw() {
+                ctx.beginPath();
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                gradient.addColorStop(0, `rgba(128, 0, 0, ${this.opacity})`);
+                gradient.addColorStop(1, 'rgba(5, 5, 5, 0)');
+                ctx.fillStyle = gradient;
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 25; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateFog() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateFog);
+        }
+        animateFog();
+
+        // Terminal Diagnostic Modal Flow
+        const modal = document.getElementById('terminal-modal');
+        const logsContainer = document.getElementById('terminal-logs');
+        const launchBtn = document.getElementById('launch-game-btn');
+
+        document.getElementById('start-spectrometer-btn').addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            logsContainer.innerHTML = '<p class="text-gray-500">> Initialisation du Spectromètre...</p>';
+            launchBtn.disabled = true;
+            launchBtn.innerText = "DIAGNOSTIC EN COURS...";
+            launchBtn.className = "w-full py-4 bg-iron text-gray-500 font-mono-hud text-xs font-bold tracking-widest rounded-xl cursor-not-allowed border border-gray-800 transition-all";
+
+            const steps = [
+                { text: "> Vérification des capteurs NFC... PRÊT", delay: 800 },
+                { text: "> Test du canal WebAR (MindAR)... RENDER OK", delay: 1600 },
+                { text: "> Synchronisation GPS Rians (47°11'N)... LOCALISÉ", delay: 2400 },
+                { text: "> Scan des fréquences EVP... ALERTE : FRÉQUENCE DÉTECTÉE", delay: 3200, color: "text-red-500 font-bold" }
+            ];
+
+            steps.forEach((step) => {
+                setTimeout(() => {
+                    const p = document.createElement('p');
+                    p.innerText = step.text;
+                    if (step.color) p.className = step.color;
+                    logsContainer.appendChild(p);
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }, step.delay);
+            });
+
+            setTimeout(() => {
+                launchBtn.disabled = false;
+                launchBtn.innerText = "LANCER LE SPECTROMÈTRE (DÉBUT DU JEU)";
+                launchBtn.className = "w-full py-4 bg-gradient-to-r from-blood-deep via-blood-dark to-blood text-white font-mono-hud text-xs font-bold tracking-widest rounded-xl border border-blood cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-red-950";
+            }, 4000);
+        });
+
+        document.getElementById('close-modal-btn').addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // Redirection vers acte1.html au clic
+        launchBtn.addEventListener('click', () => {
+            window.location.href = 'acte1.html';
+        });
+    </script>
+</body>
+</html>
