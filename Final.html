@@ -431,6 +431,11 @@
 
   <script>
     // ========================================================
+    // 0. DETECTION MOBILE
+    // ========================================================
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // ========================================================
     // 1. SYNTHÉTISEUR AUDIO PARASITES RADIO (WEB AUDIO API)
     // ========================================================
     class RadioStaticSynth {
@@ -605,6 +610,11 @@
         analyser.getByteFrequencyData(dataArray);
       } else if (synthData) {
         dataArray.set(synthData);
+      } else if (isMobile && isListening) {
+        // Simuler une petite activité visuelle sur mobile
+        for(let i=0; i<bufferLength; i++) {
+            dataArray[i] = Math.random() * 50; 
+        }
       }
 
       const barWidth = (canvas.width / bufferLength) * 2.2;
@@ -659,7 +669,10 @@
         });
 
         const hasKeywords = detectedInCycle.size >= Math.ceil(KEYWORDS.length * 0.6);
-        const hasAmplitude = getCurrentVolume() >= MIN_VOLUME_THRESHOLD;
+        
+        // CORRECTION MOBILE : Ignorer la jauge de volume sur mobile pour éviter le blocage
+        const vol = getCurrentVolume();
+        const hasAmplitude = isMobile ? true : (vol >= MIN_VOLUME_THRESHOLD);
 
         if (hasKeywords) {
           if (hasAmplitude) {
@@ -748,17 +761,23 @@
         radioSynth.init(audioCtx);
         radioSynth.start();
 
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const source = audioCtx.createMediaStreamSource(micStream);
-        
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64;
-        
-        source.connect(analyser);
-        radioSynth.masterGain.connect(analyser);
-        radioSynth.masterGain.connect(audioCtx.destination);
+        // 1. Sur mobile, prioriser la reconnaissance vocale AVANT la capture Web Audio
+        if (recognition) try { recognition.start(); } catch(e) { console.warn("Erreur STT", e); }
 
-        if (recognition) try { recognition.start(); } catch(e) {}
+        // 2. Ne capturer le flux audio brut que sur ordinateur pour l'analyseur de volume
+        if (!isMobile) {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const source = audioCtx.createMediaStreamSource(micStream);
+          
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;
+          
+          source.connect(analyser);
+          radioSynth.masterGain.connect(analyser);
+        }
+        
+        // 3. Le son de la radio doit toujours sortir, mobile ou non
+        radioSynth.masterGain.connect(audioCtx.destination);
         
         isListening = true;
         startBtn.classList.add('recording');
@@ -768,6 +787,7 @@
         drawVisualizer();
       } catch (err) {
         feedback.textContent = "Micro non disponible. Mode simulation actif.";
+        console.error(err);
       }
     }
 
