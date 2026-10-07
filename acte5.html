@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CELLULE DE CRISE // RIANS - EAU NOIRE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080101;
+            --panel-bg: #140303;
+            --panel-border: #8b0000;
+            --blood-red: #cc0000;
+            --bright-red: #ff1a1a;
+            --dark-red: #4a0000;
+            --text-color: #e6c2c2;
+            --text-bright: #ffffff;
+            --text-dim: #996666;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-doc: 'Special Elite', cursive, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, #200000 0%, #050000 70%),
+                linear-gradient(rgba(255, 0, 0, 0.03) 50%, rgba(0, 0, 0, 0.2) 50%);
+            background-size: 100% 100%, 100% 4px;
+        }
+
+        /* CRT Overlay Filter */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 999;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Blood Vignette */
+        .vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 100px rgba(139, 0, 0, 0.6);
+            pointer-events: none;
+            z-index: 998;
+        }
+
+        header {
+            background: linear-gradient(180deg, var(--dark-red) 0%, #100000 100%);
+            border-bottom: 3px solid var(--blood-red);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(204, 0, 0, 0.4);
+            position: relative;
+        }
+
+        header h1 {
+            color: var(--bright-red);
+            font-size: 2rem;
+            text-shadow: 0 0 10px var(--bright-red), 2px 2px #000;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+        }
+
+        .status-bar {
+            background-color: rgba(20, 0, 0, 0.8);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--bright-red);
+        }
+
+        .blink {
+            animation: blinker 1.2s infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            background: #0a0101;
+            border-bottom: 1px solid var(--panel-border);
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: var(--panel-bg);
+            color: var(--text-color);
+            border: 1px solid var(--panel-border);
+            padding: 10px 20px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--dark-red);
+            color: var(--bright-red);
+            border-color: var(--bright-red);
+            box-shadow: 0 0 15px rgba(255, 26, 26, 0.5);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Section Lock / Password Screen */
+        .lock-container {
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            padding: 30px;
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.3);
+            max-width: 700px;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .lock-title {
+            color: var(--bright-red);
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--dark-red);
+            padding-bottom: 10px;
+        }
+
+        .lock-desc {
+            margin-bottom: 25px;
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            color: var(--bright-red);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .input-group input {
+            background: #050000;
+            border: 1px solid var(--panel-border);
+            color: var(--text-bright);
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            text-align: center;
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--bright-red);
+            box-shadow: 0 0 8px rgba(255, 26, 26, 0.5);
+        }
+
+        .submit-btn {
+            background: linear-gradient(180deg, var(--blood-red) 0%, var(--dark-red) 100%);
+            color: #fff;
+            border: 1px solid var(--bright-red);
+            padding: 14px 30px;
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(204, 0, 0, 0.4);
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .submit-btn:hover {
+            background: var(--bright-red);
+            color: #000;
+            box-shadow: 0 0 25px rgba(255, 26, 26, 0.8);
+        }
+
+        .feedback {
+            margin-top: 20px;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 3px;
+            display: none;
+        }
+
+        .feedback.error {
+            display: block;
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid var(--bright-red);
+            color: var(--bright-red);
+            animation: shake 0.3s ease-in-out;
+        }
+
+        .feedback.success {
+            display: block;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        /* Document Viewer Grid */
+        .doc-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .doc-btn {
+            background: #100202;
+            border: 1px solid var(--panel-border);
+            color: var(--text-color);
+            padding: 10px 15px;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .doc-btn:hover, .doc-btn.active {
+            background: var(--dark-red);
+            color: var(--text-bright);
+            border-color: var(--bright-red);
+        }
+
+        /* Document Paper Aesthetics */
+        .document-paper {
+            background: #f4efe6;
+            color: #111;
+            font-family: var(--font-doc);
+            padding: 40px;
+            border-radius: 2px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 10px rgba(139, 0, 0, 0.5);
+            max-width: 850px;
+            margin: 0 auto 30px auto;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .document-paper::after {
+            content: "CONFIDENTIEL";
+            position: absolute;
+            top: 40%;
+            left: 20%;
+            font-size: 5rem;
+            color: rgba(200, 0, 0, 0.12);
+            transform: rotate(-30deg);
+            pointer-events: none;
+            font-weight: bold;
+            border: 8px solid rgba(200, 0, 0, 0.12);
+            padding: 10px;
+        }
+
+        .doc-header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .doc-header h2 {
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            color: #000;
+        }
+
+        .doc-badge {
+            background: #900;
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+
+        .doc-meta {
+            background: #e8e1d5;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border-left: 3px solid #8b0000;
+        }
+
+        .doc-content p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .latin-box {
+            background: #e2dacd;
+            border: 1px dashed #8b0000;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            font-weight: bold;
+            color: #400;
+        }
+
+        .secret-unlocked-area {
+            background: #1a0000;
+            border: 2px solid var(--bright-red);
+            padding: 30px;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 0 30px var(--bright-red);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid var(--panel-border);
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            background: #050000;
+        }
+    </style>
+</head>
+<body>
+    <div class="vignette"></div>
+
+    <header>
+        <h1>CELLULE DE CRISE MUNICIPALE</h1>
+        <p>RÉSEAU HYDROLOGIQUE & HERTZIEN // COMMUNE DE RIANS (18220)</p>
+    </header>
+
+    <div class="status-bar">
+        <span>STATUT : <span class="blink">ALERTE CRITIQUE</span></span>
+        <span>SCELLÉ N° : 78/409</span>
+        <span>RÉSEAU 4G : INFECTÉ</span>
+    </div>
+
+    <nav>
+        <button class="nav-btn active" onclick="showTab('docs', this)">📁 Documents d'Enquête</button>
+        <button class="nav-btn" onclick="showTab('unlock', this)">🔓 Neutraliser le Signal</button>
+        <button class="nav-btn" onclick="showTab('secret', this)" id="secret-tab-btn" style="opacity:0.5;">🔒 Zone Sécurisée</button>
+    </nav>
+
+    <main>
+        <!-- TAB 1 : DOCUMENTS -->
+        <div id="tab-docs" class="tab-content active">
+            <div class="doc-selector">
+                <button class="doc-btn active" onclick="loadDoc('docA', this)">Doc A/D : PV Gendarmerie (1978)</button>
+                <button class="doc-btn" onclick="loadDoc('docB', this)">Doc B/D : Codex & CHS Bourges</button>
+                <button class="doc-btn" onclick="loadDoc('docC', this)">Doc C/D : Alerte Préfectorale</button>
+            </div>
+
+            <!-- DOCUMENT A -->
+            <div id="docA" class="document-paper">
+                <div class="doc-header">
+                    <div>
+                        <h2>GENDARMERIE NATIONALE // BRIGADE DE RIANS</h2>
+                        <p style="font-size:0.9rem;">Procès-Verbal d'Incident n° 78/409</p>
+                    </div>
+                    <span class="doc-badge">DOCUMENT A / D</span>
+                </div>
+                <div class="doc-meta">
+                    <strong>AFFAIRE :</strong> Noyades anormales au lavoir municipal & dépôts visqueux<br>
+                    <strong>DATE :</strong> 12 Novembre 1978 à 03h40<br>
+                    <strong>OFFICIER RÉDACTEUR :</strong> Adjudant M. Giraud
+                </div>
+                <div class="doc-content">
+                    <p><strong>RÉSUMÉ DES CONSTATATIONS DE TERRAIN :</strong><br>
+                    Appelés sur les lieux à la suite d'appels de riverains signalant des hurlements étouffés, nos services ont constaté l'immersion anormale de trois personnes dans le bassin principal du lavoir municipal. L'eau présentait une coloration noire très sombre, une consistance huileuse et une absence totale de tension superficielle.</p>
+                    
+                    <p><strong>AUDITION DU CONTREMAÎTRE MUNICIPAL :</strong><br>
+                    « Ce n'était pas de l'eau de pluie. Ça remontait directement des conduits profonds sous le pavé. Quand on a tenté de tendre une perche pour les sortir de là, la masse noire semblait aspirer le bois vers le bas. Et puis il y avait cette vibration dans les tuyaux... comme une mélodie d'orgue jouée sous l'eau. »</p>
+
+                    <p><strong>SCELLÉ N° 4 :</strong> Échantillon d'eau noire prélevé dans le bassin. Le fluide refuse de se mélanger à l'eau claire et émet une faible charge électrostatique captée par les appareils radio de la camionnette de patrouille.</p>
+
+                    <p><strong>CONCLUSION PROVISOIRE :</strong> Fermeture immédiate et condamnation de l'accès au lavoir recommandées. Procédure transmise à la préfecture de Bourges pour classement sous mention confidentielle.</p>
+                </div>
+            </div>
+
+            <!-- DOCUMENT B -->
+            <div id="docB" class="document-paper" style="display:none;">
+                <div class="doc-header">
+                    <div>
+                        <h2>SERVICE ARCHIVES MÉDICALES & PAROISSIALES</h2>
+                        <p style="font-size:0.9rem;">CHS Bourges // Dossier #309-B & Codex de Rians</p>
+                    </div>
+                    <span class="doc-badge">DOCUMENT B / D</span>
+                </div>
+                <div class="doc-meta">
+                    <strong>PATIENT :</strong> Victor M., ex-fontainier (Admission : 04/04/1982)<br>
+                    <strong>PRATICIEN :</strong> Dr. A. Lesage (Diagnostic : Psychose auditive focale)<br>
+                    <strong>ARCHIVE PAROISSIALE :</strong> Testament de l'Abbé Théophile (03/11/1894)
+                </div>
+                <div class="doc-content">
+                    <p><strong>TRANSCRIPTION MAGNÉTIQUE (18/05/1982) :</strong><br>
+                    <em>Dr. Lesage :</em> Victor, pourquoi refusez-vous d'approcher des grilles d'évacuation ?<br>
+                    <em>Patient :</em> Ce ne sont pas des grilles, Docteur... Ce sont des micros. L'eau noire veut parler. Pour l'instant, elle murmure dans la fonte. Mais le jour où ils dresseront du métal vers le ciel près des tombes, l'eau parlera dans vos poches. Elle passera par les ondes...</p>
+
+                    <p><strong>EVALUATION DU PRATICIEN :</strong> Le sujet a dessiné de manière répétitive un schéma montrant <strong>6 points de jonction interconnectés</strong> entre le cimetière et la mairie de Rians.</p>
+
+                    <div class="latin-box">
+                        <strong>CODEX DE L'ABBÉ THÉOPHILE (1894) :</strong><br>
+                        « Per sanguinem elutum lotricium oppidi Rians. Eructet puteus ater tenebras suas carminesque suos. A coemeterio usque ad antennam, conticescat unda et frangatur. Devoret terra exsecrationem, priusquam nox nos decipiat. »
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOCUMENT C -->
+            <div id="docC" class="document-paper" style="display:none;">
+                <div class="doc-header">
+                    <div>
+                        <h2>ALERTE MUNICIPALE // NUIT D'HALLOWEEN</h2>
+                        <p style="font-size:0.9rem;">Arrêté préfectoral d'urgence - Commune de Rians (18220)</p>
+                    </div>
+                    <span class="doc-badge">DOCUMENT C / D</span>
+                </div>
+                <div class="doc-meta">
+                    <strong>SITUATION :</strong> Perturbations hertziennes majeures depuis l'antenne relais du cimetière.<br>
+                    <strong>CONSIGNE :</strong> Eau du robinet strictement interdite. Ne pas répondre aux appels émettant des bruits de ruissellement.
+                </div>
+                <div class="doc-content">
+                    <p><strong>⚠️ AVIS DE DISPARITIONS RÉCENTES ⚠️</strong></p>
+                    <table style="width:100%; text-align:left; border-collapse:collapse; margin-bottom:15px;">
+                        <tr style="border-bottom:1px solid #000;">
+                            <th style="padding:5px;">Nom</th>
+                            <th style="padding:5px;">Dernier lieu vu</th>
+                            <th style="padding:5px;">Heure</th>
+                        </tr>
+                        <tr>
+                            <td style="padding:5px;">Élodie A.</td>
+                            <td style="padding:5px;">Pont Ouatier</td>
+                            <td style="padding:5px;">21h45</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:5px;">Marc L. (Agent)</td>
+                            <td style="padding:5px;">Puits Mairie</td>
+                            <td style="padding:5px;">23h10</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:5px;">Équipe technique</td>
+                            <td style="padding:5px;">Grille Cimetière (Antenne 4G)</td>
+                            <td style="padding:5px;">01h05</td>
+                        </tr>
+                    </table>
+                    <p>GARDER VOS SMARTPHONES CHARGÉS ET VIGILANTS DURANT TOUTE LA TRAVERSÉE DU BOURG.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2 : UNLOCK TERMINAL -->
+        <div id="tab-unlock" class="tab-content">
+            <div class="lock-container">
+                <div class="lock-title">TERMINAL DE NEUTRALISATION DU SIGNAL</div>
+                <div class="lock-desc">
+                    Pour fermer les vannes du réseau sous-terrain et couper l'émission hertzienne de l'Eau Noire, veuillez saisir les 3 éléments d'authentification déduits des archives.
+                </div>
+
+                <form id="unlock-form" onsubmit="handleUnlock(event)">
+                    <div class="inputs-grid">
+                        <div class="input-group">
+                            <label for="elem1">Élément 1</label>
+                            <input type="text" id="elem1" placeholder="Ex: NOM" required autocomplete="off">
+                        </div>
+                        <div class="input-group">
+                            <label for="elem2">Élément 2</label>
+                            <input type="text" id="elem2" placeholder="Ex: CHIFFRE / HEURE" required autocomplete="off">
+                        </div>
+                        <div class="input-group">
+                            <label for="elem3">Élément 3</label>
+                            <input type="text" id="elem3" placeholder="Ex: ANNÉE / CODE" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn">INJECTER LE CODE DE CONFINEMENT</button>
+                </form>
+
+                <div id="feedback-msg" class="feedback"></div>
+            </div>
+        </div>
+
+        <!-- TAB 3 : SECRET UNLOCKED AREA -->
+        <div id="tab-secret" class="tab-content">
+            <div id="locked-state" class="lock-container">
+                <div class="lock-title" style="color:var(--text-dim);">ACCÈS REFUSÉ</div>
+                <p>Cette zone d'archives secrètes est verrouillée. Vous devez d'abord réussir à neutraliser le signal hertzien dans le terminal.</p>
+            </div>
+
+            <div id="unlocked-state" class="secret-unlocked-area" style="display:none;">
+                <h2 style="color:var(--bright-red); font-size:2rem; margin-bottom:15px;">CONFINEMENT RÉUSSI !</h2>
+                <p style="font-size:1.2rem; margin-bottom:20px;">L'émission hertzienne de l'Eau Noire a été interceptée. Les canalisations sous la ville de Rians sont à présent verrouillées.</p>
+                
+                <div style="background:#0a0101; border:1px solid var(--bright-red); padding:20px; text-align:left; margin-top:20px;">
+                    <h3 style="color:#00ff00; margin-bottom:10px;">> PROCÈS-VERBAL DE CLÔTURE D'URGENCE</h3>
+                    <p style="color:#ccc; font-family:var(--font-mono); font-size:0.95rem; line-height:1.6;">
+                        <strong>CODE D'ÉQUIPE VALIDÉ.</strong><br>
+                        Le signal émis par l'antenne du cimetière a cessé. La charge électrostatique de l'eau noire retombe progressivement.<br><br>
+                        Procédure d'urgence , il va falloir sceller définitivement cette entité .
+                    </p>
+                </div>
+
+                <div style="margin-top:25px;">
+                    <a href="acte6.html" class="submit-btn" style="max-width:350px;">PASSER À L'ACTE 6</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        CELLULE DE CRISE MUNICIPALE // COMMUNE DE RIANS 18220 // SYSTEME D'URGENCE ESCAPE GAME
+    </footer>
+
+    <script>
+        // Set of valid combinations for the 3 elements
+        const validCombos = [
+            // Combination 1: GIRAUD - 12 - 1894
+            { e1: ["GIRAUD"], e2: ["12", "DOUZE"], e3: ["1894"] },
+            // Combination 2: VICTOR - 309 - 1982
+            { e1: ["VICTOR"], e2: ["309B", "309"], e3: ["1982"] },
+            // Combination 3: ELODIE - 21H45 - 18220
+            { e1: ["ELODIE", "ELODIE A", "ELODIE A."], e2: ["21H45"], e3: ["18220"] }
+        ];
+
+        let isUnlocked = false;
+
+        function showTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            const targetBtn = btn || document.getElementById(tabId + '-tab-btn') || document.querySelector(`button[onclick*="'${tabId}'"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        }
+
+        function loadDoc(docId, btn) {
+            document.querySelectorAll('.document-paper').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.doc-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(docId).style.display = 'block';
+            
+            const targetBtn = btn || document.querySelector(`button[onclick*="'${docId}'"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        }
+
+        function playSound(type) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.4);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.6);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.6);
+                }
+            } catch(e) { console.log('Audio not supported or restricted'); }
+        }
+
+        function handleUnlock(event) {
+            event.preventDefault();
+            const val1 = document.getElementById('elem1').value.trim().toUpperCase();
+            const val2 = document.getElementById('elem2').value.trim().toUpperCase();
+            const val3 = document.getElementById('elem3').value.trim().toUpperCase();
+
+            const feedback = document.getElementById('feedback-msg');
+
+            // Check if input matches any valid combination
+            const match = validCombos.some(combo => {
+                return combo.e1.includes(val1) && combo.e2.includes(val2) && combo.e3.includes(val3);
+            });
+
+            if (match) {
+                isUnlocked = true;
+                playSound('success');
+                feedback.className = "feedback success";
+                feedback.innerHTML = "<strong>CODE ACCEPTÉ :</strong> SIGNAL NEUTRALISÉ AVEC SUCCÈS. ACCÈS ACCORDÉ À LA ZONE SÉCURISÉE.";
+                
+                // Unlock secret tab
+                const secretBtn = document.getElementById('secret-tab-btn');
+                secretBtn.style.opacity = "1";
+                secretBtn.style.color = "#00ff00";
+                secretBtn.innerHTML = "🔓 Zone Sécurisée";
+
+                document.getElementById('locked-state').style.display = 'none';
+                document.getElementById('unlocked-state').style.display = 'block';
+
+                setTimeout(() => {
+                    showTab('secret');
+                }, 1500);
+
+            } else {
+                playSound('error');
+                feedback.className = "feedback error";
+                feedback.innerHTML = "<strong>ERREUR D'AUTHENTIFICATION :</strong> CLÉ INVALIDE. LE SIGNAL DE L'EAU NOIRE PERSISTE.";
+            }
+        }
+    </script>
+</body>
+</html>
