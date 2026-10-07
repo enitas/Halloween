@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Escape Game - Acte 1 : Le Parvis</title>
     
-    <!-- Tailwind CSS pour un design moderne et rapide -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- A-Frame & MindAR pour la Réalité Augmentée -->
+    <!-- A-Frame & MindAR -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
@@ -65,7 +65,7 @@
                 <p id="status-gps" class="text-xs text-gray-500 mt-1">En attente de signal satellite...</p>
             </div>
 
-            <!-- Bouton de secours si l'audio est bloqué par le navigateur -->
+            <!-- Bouton de secours si l'audio est bloqué -->
             <button id="play-audio-btn" onclick="playAudioDirectly()" class="hidden w-full blood-btn text-white text-xs py-2 rounded font-bold uppercase tracking-wider mb-2">
                 🔊 Écouter l'indice audio
             </button>
@@ -82,23 +82,22 @@
                 Mode AR Actif : Visez la porte en bois
             </div>
             
-            <!-- A-Frame / MindAR Scene -->
+            <!-- A-Frame / MindAR Scene avec autoStart: false -->
             <a-scene 
                 embedded 
-                mindar-image="imageTargetSrc: ./targets.mind; uiLoading: no; uiScanning: no;" 
+                mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no;" 
                 vr-mode-ui="enabled: false" 
                 device-orientation-permission-ui="enabled: false"
                 class="w-full h-full">
                 
                 <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
                 
-                <!-- Cible virtuelle pour détection -->
                 <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
                     <a-plane position="0 0 0" height="1" width="1" rotation="0 0 0" material="color: red; transparent: true; opacity: 0.5"></a-plane>
                 </a-entity>
             </a-scene>
 
-            <!-- Bouton de secours si le scan vidéo est trop long -->
+            <!-- Bouton de secours -->
             <div class="absolute bottom-3 left-0 right-0 z-20 flex justify-center">
                 <button onclick="openRiddle()" class="blood-btn text-white text-xs px-4 py-2 rounded-full uppercase tracking-wider font-bold">
                     Simuler le scan de la porte
@@ -108,7 +107,7 @@
 
     </main>
 
-    <!-- MODAL DE L'ÉNIGME (Masquée par défaut) -->
+    <!-- MODAL DE L'ÉNIGME -->
     <div id="riddle-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-950 blood-border rounded-xl p-6 w-full max-w-md space-y-4 relative">
             <h3 class="text-xl font-bold text-red-600 blood-glow text-center uppercase">Le Sceau de l'Église</h3>
@@ -139,18 +138,15 @@
 
     <!-- SCRIPT LOGIQUE -->
     <script>
-        // Coordonnées cibles (Parvis de l'église) : N 47° 11,137' E 2° 36,777'
-        // Conversion décimale : Lat 47.185617, Lon 2.612950
         const TARGET_LAT = 47.185617;
         const TARGET_LON = 2.612950;
-        const THRESHOLD_METERS = 20; // Tolérance fixée à 20 mètres
+        const THRESHOLD_METERS = 20;
 
         let audioPlayed = false;
         let watchId = null;
 
-        // Formule de Haversine pour calculer la distance GPS en mètres
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Rayon de la Terre en mètres
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -161,10 +157,9 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            return R * c; // en mètres
+            return R * c;
         }
 
-        // Démarrage du suivi GPS
         function initGPS() {
             if ("geolocation" in navigator) {
                 watchId = navigator.geolocation.watchPosition(
@@ -190,7 +185,6 @@
             }
         }
 
-        // Action explicite si la lecture audio automatique a été bloquée
         function playAudioDirectly() {
             const audio = document.getElementById('audioEnigme');
             audio.play().then(() => {
@@ -199,9 +193,8 @@
             }).catch(e => console.log("Erreur lecture audio :", e));
         }
 
-        // Déclenchement de l'entrée dans le périmètre
+        // DÉCLENCHEMENT DU MODE AR ET DE LA CAMÉRA
         function triggerProximity() {
-            // Arrêter la géolocalisation pour économiser la batterie
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
@@ -212,18 +205,33 @@
                 audio.play().then(() => {
                     audioPlayed = true;
                 }).catch(e => {
-                    console.log("Lecture audio bloquée par le navigateur :", e);
-                    // Proposer le bouton d'action manuelle
+                    console.log("Lecture audio bloquée :", e);
                     document.getElementById('play-audio-btn').classList.remove('hidden');
                 });
             }
 
-            // Basculer l'affichage vers la section AR
+            // 1. Afficher la section AR
             document.getElementById('gps-section').classList.add('hidden');
             document.getElementById('ar-section').classList.remove('hidden');
+
+            // 2. Démarrer manuellement la caméra MindAR
+            const sceneEl = document.querySelector('a-scene');
+            if (sceneEl) {
+                const startAR = () => {
+                    const arSystem = sceneEl.systems['mindar-image-system'];
+                    if (arSystem) {
+                        arSystem.start(); // Démarrage officiel & demande de permissions
+                    }
+                };
+
+                if (sceneEl.hasLoaded) {
+                    startAR();
+                } else {
+                    sceneEl.addEventListener('render-start', startAR);
+                }
+            }
         }
 
-        // Écouteur de détection MindAR (si la cible image est reconnue)
         document.addEventListener("DOMContentLoaded", () => {
             initGPS();
 
@@ -235,20 +243,16 @@
             }
         });
 
-        // Ouverture du formulaire de l'énigme
         function openRiddle() {
             document.getElementById('riddle-modal').classList.remove('hidden');
         }
 
-        // Validation de l'énigme
         function checkRiddle(event) {
             event.preventDefault();
             const answerInput = document.getElementById('riddle-answer').value.trim().toLowerCase();
-            
             const correctAnswers = ["neant", "néant", "eglise", "église", "lux"]; 
 
             if (correctAnswers.includes(answerInput)) {
-                // Redirection vers l'acte 1 bis
                 window.location.href = "acte1bis.html";
             } else {
                 const errorMsg = document.getElementById('error-msg');
