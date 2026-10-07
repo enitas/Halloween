@@ -65,6 +65,11 @@
                 <p id="status-gps" class="text-xs text-gray-500 mt-1">En attente de signal satellite...</p>
             </div>
 
+            <!-- Bouton de secours si l'audio est bloqué par le navigateur -->
+            <button id="play-audio-btn" onclick="playAudioDirectly()" class="hidden w-full blood-btn text-white text-xs py-2 rounded font-bold uppercase tracking-wider mb-2">
+                🔊 Écouter l'indice audio
+            </button>
+
             <!-- Bouton de simulation pour test hors zone -->
             <button onclick="triggerProximity()" class="w-full py-2 text-xs text-gray-400 hover:text-red-400 underline transition">
                 [Mode Test / Forcer l'entrée dans le périmètre]
@@ -80,25 +85,20 @@
             <!-- A-Frame / MindAR Scene -->
             <a-scene 
                 embedded 
-                mindar-image="imageTargetSrc: #;" 
+                mindar-image="imageTargetSrc: ./targets.mind; uiLoading: no; uiScanning: no;" 
                 vr-mode-ui="enabled: false" 
                 device-orientation-permission-ui="enabled: false"
                 class="w-full h-full">
                 
-                <a-assets>
-                    <!-- Tu pourras lier ton fichier .mind ici si tu en génères un, ex: target.mind -->
-                    <img id="card" src="" />
-                </a-assets>
-
                 <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
                 
-                <!-- Cible virtuelle pour simulation ou déclenchement -->
+                <!-- Cible virtuelle pour détection -->
                 <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
                     <a-plane position="0 0 0" height="1" width="1" rotation="0 0 0" material="color: red; transparent: true; opacity: 0.5"></a-plane>
                 </a-entity>
             </a-scene>
 
-            <!-- Bouton de secours si la caméra/cible met du temps à scanner -->
+            <!-- Bouton de secours si le scan vidéo est trop long -->
             <div class="absolute bottom-3 left-0 right-0 z-20 flex justify-center">
                 <button onclick="openRiddle()" class="blood-btn text-white text-xs px-4 py-2 rounded-full uppercase tracking-wider font-bold">
                     Simuler le scan de la porte
@@ -113,7 +113,7 @@
         <div class="bg-zinc-950 blood-border rounded-xl p-6 w-full max-w-md space-y-4 relative">
             <h3 class="text-xl font-bold text-red-600 blood-glow text-center uppercase">Le Sceau de l'Église</h3>
             <p class="text-sm text-gray-300 text-center">
-                La porte s'est entrouverte. Pour franchir le seuil, répondez à l'énigme murmuration par les voix :
+                La porte s'est entrouverte. Pour franchir le seuil, répondez à l'énigme murmurée par les voix :
             </p>
             <div class="bg-red-950/30 p-3 rounded border border-red-900 text-red-200 text-xs italic text-center">
                 "Quel est le mot gravé sur le seuil du néant ?" (Indice audio : Écoutez bien le message)
@@ -143,22 +143,23 @@
         // Conversion décimale : Lat 47.185617, Lon 2.612950
         const TARGET_LAT = 47.185617;
         const TARGET_LON = 2.612950;
-        const THRESHOLD_METERS = 10; // 5 à 10 mètres
+        const THRESHOLD_METERS = 20; // Tolérance fixée à 20 mètres
 
         let audioPlayed = false;
+        let watchId = null;
 
         // Formule de Haversine pour calculer la distance GPS en mètres
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // Rayon de la Terre en mètres
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                       Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
             return R * c; // en mètres
         }
@@ -166,7 +167,7 @@
         // Démarrage du suivi GPS
         function initGPS() {
             if ("geolocation" in navigator) {
-                navigator.geolocation.watchPosition(
+                watchId = navigator.geolocation.watchPosition(
                     (position) => {
                         const userLat = position.coords.latitude;
                         const userLon = position.coords.longitude;
@@ -182,19 +183,39 @@
                     (error) => {
                         document.getElementById('status-gps').innerText = `Erreur GPS : ${error.message}. Utilisez le mode test ci-dessous.`;
                     },
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
                 );
             } else {
                 document.getElementById('status-gps').innerText = "Géolocalisation non supportée par ce navigateur.";
             }
         }
 
+        // Action explicite si la lecture audio automatique a été bloquée
+        function playAudioDirectly() {
+            const audio = document.getElementById('audioEnigme');
+            audio.play().then(() => {
+                audioPlayed = true;
+                document.getElementById('play-audio-btn').classList.add('hidden');
+            }).catch(e => console.log("Erreur lecture audio :", e));
+        }
+
         // Déclenchement de l'entrée dans le périmètre
         function triggerProximity() {
+            // Arrêter la géolocalisation pour économiser la batterie
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
             if (!audioPlayed) {
-                audioPlayed = true;
                 const audio = document.getElementById('audioEnigme');
-                audio.play().catch(e => console.log("Lecture audio bloquée par le navigateur :", e));
+                audio.play().then(() => {
+                    audioPlayed = true;
+                }).catch(e => {
+                    console.log("Lecture audio bloquée par le navigateur :", e);
+                    // Proposer le bouton d'action manuelle
+                    document.getElementById('play-audio-btn').classList.remove('hidden');
+                });
             }
 
             // Basculer l'affichage vers la section AR
@@ -224,7 +245,6 @@
             event.preventDefault();
             const answerInput = document.getElementById('riddle-answer').value.trim().toLowerCase();
             
-            // Remplace "NEANT" ou la réponse attendue par ton mot-clé réel de l'énigme 1
             const correctAnswers = ["neant", "néant", "eglise", "église", "lux"]; 
 
             if (correctAnswers.includes(answerInput)) {
