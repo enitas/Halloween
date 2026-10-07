@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acte VI — L'Écho de l'Eau Morte</title>
+  <style>
+    :root {
+      --bg-void: #080002;
+      --panel-bg: #140205;
+      --blood-red: #ff0033;
+      --crimson-dark: #800014;
+      --blood-glow: rgba(255, 0, 51, 0.6);
+      --victory-green: #00ffcc;
+      --victory-glow: rgba(0, 255, 204, 0.4);
+      --text-main: #ffe6ea;
+      --text-dim: #996670;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      font-family: 'Courier New', Courier, monospace;
+      margin: 0;
+      padding: 20px 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .act-container, .victory-container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--panel-bg);
+      border: 1px solid var(--crimson-dark);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 35px rgba(255, 0, 51, 0.25), inset 0 0 15px rgba(255, 0, 51, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .act-container::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blood-red), transparent);
+    }
+
+    .victory-container {
+      display: none;
+      border-color: var(--victory-green);
+      box-shadow: 0 0 35px var(--victory-glow), inset 0 0 15px rgba(0, 255, 204, 0.1);
+      text-align: center;
+    }
+
+    .victory-container::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--victory-green), transparent);
+    }
+
+    .victory-title {
+      font-size: 18px;
+      color: var(--victory-green);
+      text-shadow: 0 0 10px var(--victory-green);
+      letter-spacing: 2px;
+      margin: 10px 0;
+    }
+
+    .victory-message {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #fff;
+      margin-bottom: 20px;
+      background: rgba(0, 255, 204, 0.05);
+      border: 1px solid rgba(0, 255, 204, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .camera-box {
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--victory-green);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #webcam, #photo-preview {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    #photo-preview { display: none; }
+    canvas#photo-canvas { display: none; }
+
+    .act-header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 0, 51, 0.1);
+      border: 1px solid var(--blood-red);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: var(--blood-red);
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--blood-red);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--blood-red);
+      animation: bloodPulse 1s infinite alternate;
+    }
+
+    @keyframes bloodPulse {
+      from { opacity: 0.3; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1.3); }
+    }
+
+    .act-title {
+      font-size: 16px;
+      margin: 10px 0 4px 0;
+      color: #fff;
+      text-shadow: 0 0 10px var(--blood-red);
+      letter-spacing: 2px;
+    }
+
+    .act-subtitle {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin: 0;
+    }
+
+    .audio-controls {
+      background: #0d0103;
+      border: 1px solid rgba(255, 0, 51, 0.3);
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .control-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--blood-red);
+      cursor: pointer;
+    }
+
+    .visualizer-box {
+      position: relative;
+      background: #000;
+      border: 1px solid var(--crimson-dark);
+      border-radius: 8px;
+      height: 100px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+
+    canvas#visualizer {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .threshold-line {
+      position: absolute;
+      bottom: 25%;
+      left: 0; right: 0;
+      height: 1px;
+      border-top: 1px dashed var(--blood-red);
+      opacity: 0.6;
+    }
+
+    .threshold-label {
+      position: absolute;
+      right: 6px;
+      top: -12px;
+      font-size: 8px;
+      color: var(--blood-red);
+      letter-spacing: 1px;
+    }
+
+    .cycles-wrapper { margin-bottom: 12px; }
+
+    .cycles-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .cycles-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pill {
+      flex: 1;
+      height: 10px;
+      background: rgba(255, 0, 51, 0.15);
+      border: 1px solid rgba(255, 0, 51, 0.3);
+      border-radius: 3px;
+      transition: all 0.4s ease;
+    }
+
+    .pill.active {
+      background: var(--blood-red);
+      box-shadow: 0 0 10px var(--blood-red);
+      border-color: #fff;
+    }
+
+    .incantation-box {
+      background: rgba(20, 2, 5, 0.8);
+      border-left: 3px solid var(--blood-red);
+      padding: 12px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .word {
+      color: var(--text-dim);
+      transition: all 0.3s ease;
+      padding: 0 2px;
+    }
+
+    .word.active {
+      color: #fff;
+      background: var(--crimson-dark);
+      text-shadow: 0 0 8px var(--blood-red);
+      border-radius: 2px;
+    }
+
+    .lang-toggle-box {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--crimson-dark);
+      text-align: center;
+    }
+
+    .lang-toggle-link {
+      color: var(--blood-red);
+      font-size: 11px;
+      text-decoration: underline;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-block;
+      transition: all 0.2s ease;
+    }
+
+    .lang-toggle-link:hover {
+      color: #fff;
+      text-shadow: 0 0 8px var(--blood-red);
+    }
+
+    .feedback-text {
+      text-align: center;
+      font-size: 11px;
+      color: var(--blood-red);
+      min-height: 18px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-block;
+    }
+
+    .btn-main {
+      background: var(--blood-red);
+      color: #fff;
+      box-shadow: 0 0 15px var(--blood-glow);
+    }
+
+    .btn-victory {
+      background: var(--victory-green);
+      color: #000;
+      box-shadow: 0 0 15px var(--victory-glow);
+    }
+
+    .btn-main.recording {
+      background: #33000a;
+      border: 1px solid var(--blood-red);
+      color: var(--blood-red);
+      animation: pulseRecord 1.5s infinite;
+    }
+
+    @keyframes pulseRecord {
+      0%, 100% { box-shadow: 0 0 5px var(--blood-red); }
+      50% { box-shadow: 0 0 20px var(--blood-red); }
+    }
+
+    .btn-sec {
+      background: transparent;
+      border: 1px dashed var(--text-dim);
+      color: var(--text-dim);
+      padding: 8px;
+      font-size: 10px;
+    }
+
+    .btn-sec:hover {
+      border-color: var(--blood-red);
+      color: var(--blood-red);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ÉCRAN DU RITUEL (ACTE VI) -->
+  <div class="act-container" id="act-screen">
+    <header class="act-header">
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        <span>ANTENNE RIANS — 108.4 MHz SANGUIN</span>
+      </div>
+      <h1 class="act-title">ACTE VI : L'ÉCHO DE L'EAU MORTE</h1>
+      <p class="act-subtitle">Psaume de purification — Cimetière de Rians</p>
+    </header>
+
+    <div class="audio-controls">
+      <div class="control-row">
+        <label for="noise-vol">BRUIT PARASITE :</label>
+        <input type="range" id="noise-vol" min="0" max="100" value="40">
+        <span id="noise-val">40%</span>
+      </div>
+      <div class="control-row">
+        <label for="freq-shift">FRÉQUENCE RELAIS :</label>
+        <input type="range" id="freq-shift" min="100" max="1200" value="432">
+        <span id="freq-val">432 Hz</span>
+      </div>
+    </div>
+
+    <div class="visualizer-box">
+      <canvas id="visualizer"></canvas>
+      <div class="threshold-line">
+        <span class="threshold-label">PROJECTION MIN</span>
+      </div>
+    </div>
+
+    <div class="cycles-wrapper">
+      <div class="cycles-header">
+        <span>RITUEL DE BANNISSEMENT</span>
+        <span id="cycle-count">0 / 7 CYCLE</span>
+      </div>
+      <div class="cycles-pills">
+        <div class="pill" id="pill-1"></div>
+        <div class="pill" id="pill-2"></div>
+        <div class="pill" id="pill-3"></div>
+        <div class="pill" id="pill-4"></div>
+        <div class="pill" id="pill-5"></div>
+        <div class="pill" id="pill-6"></div>
+        <div class="pill" id="pill-7"></div>
+      </div>
+    </div>
+
+    <div class="incantation-box">
+      <div id="incantation-text">
+        « Par le <span class="word" data-kw="sang">sang</span> <span class="word" data-kw="effacé">effacé</span> des <span class="word" data-kw="lavandières">lavandières</span> de Rians,<br>
+        Que le <span class="word" data-kw="puits">puits</span> noir régurgite ses <span class="word" data-kw="ténèbres">ténèbres</span> et ses chants.<br>
+        Du <span class="word" data-kw="cimetière">cimetière</span> à l'<span class="word" data-kw="antenne">antenne</span>, que l'<span class="word" data-kw="onde">onde</span> se taise et se rompe,<br>
+        Que la <span class="word" data-kw="terre">terre</span> engloutisse la <span class="word" data-kw="malédiction">malédiction</span> avant que la nuit ne nous trompe. »
+      </div>
+
+      <div class="lang-toggle-box">
+        <a href="#" id="toggle-lang-link" class="lang-toggle-link">
+          📜 Réciter le psaume en latin
+        </a>
+      </div>
+    </div>
+
+    <div class="feedback-text" id="feedback">Activer le microphone pour lancer la diffusion</div>
+
+    <div class="btn-group">
+      <button class="btn btn-main" id="start-btn">🎙 INVOKER L'ÉCHO & ACTIVER LA RADIO</button>
+      <button class="btn btn-sec" id="sim-btn">⚡ SIMULER UN CYCLE (TEST SANS MICRO)</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN DE VICTOIRE & PHOTO -->
+  <div class="victory-container" id="victory-screen">
+    <h2 class="victory-title">🏆 ENQUÊTE RÉSOLUE !</h2>
+    <p class="victory-message">
+      Bravo ! Vous avez brisé le psaume maudit et apporté la paix à Rians pour les années à venir... Le silence est enfin revenu sur les ondes.
+    </p>
+
+    <div class="camera-box">
+      <video id="webcam" autoplay playsinline></video>
+      <img id="photo-preview" alt="Photo de l'équipe victorieuse">
+      <canvas id="photo-canvas"></canvas>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-victory" id="snap-btn">📸 PRENDRE LA PHOTO D'ÉQUIPE</button>
+      <button class="btn btn-sec" id="retake-btn" style="display: none;">🔄 REPRENDRE UNE PHOTO</button>
+      <button class="btn btn-main" id="share-btn" style="display: none; background: #00ffcc; color: #000;">📲 PARTAGER LA VICTOIRE</button>
+      <a href="index.html" class="btn btn-sec">🏠 RETOUR À L'ACCUEIL</a>
+    </div>
+  </div>
+
+  <script>
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    class RadioStaticSynth {
+      constructor() {
+        this.ctx = null;
+        this.noiseNode = null;
+        this.filterNode = null;
+        this.carrierOsc = null;
+        this.modOsc = null;
+        this.masterGain = null;
+        this.noiseGain = null;
+        this.carrierGain = null;
+        this.isPlaying = false;
+        this.baseVolume = 0.4;
+      }
+
+      init(audioContext) {
+        this.ctx = audioContext;
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(this.baseVolume, this.ctx.currentTime);
+
+        const bufferSize = 2 * this.ctx.sampleRate;
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        this.noiseNode = this.ctx.createBufferSource();
+        this.noiseNode.buffer = noiseBuffer;
+        this.noiseNode.loop = true;
+
+        this.filterNode = this.ctx.createBiquadFilter();
+        this.filterNode.type = 'bandpass';
+        this.filterNode.frequency.setValueAtTime(1200, this.ctx.currentTime);
+        this.filterNode.Q.setValueAtTime(1.5, this.ctx.currentTime);
+
+        this.noiseGain = this.ctx.createGain();
+        this.noiseGain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+
+        this.noiseNode.connect(this.filterNode);
+        this.filterNode.connect(this.noiseGain);
+        this.noiseGain.connect(this.masterGain);
+
+        this.carrierOsc = this.ctx.createOscillator();
+        this.carrierOsc.type = 'sawtooth';
+        this.carrierOsc.frequency.setValueAtTime(432, this.ctx.currentTime);
+
+        this.modOsc = this.ctx.createOscillator();
+        this.modOsc.type = 'sine';
+        this.modOsc.frequency.setValueAtTime(5, this.ctx.currentTime);
+
+        const modGain = this.ctx.createGain();
+        modGain.gain.setValueAtTime(30, this.ctx.currentTime);
+
+        this.modOsc.connect(modGain);
+        modGain.connect(this.carrierOsc.frequency);
+
+        this.carrierGain = this.ctx.createGain();
+        this.carrierGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+
+        this.carrierOsc.connect(this.carrierGain);
+        this.carrierGain.connect(this.masterGain);
+      }
+
+      start() {
+        if (this.isPlaying) return;
+        this.noiseNode.start();
+        this.carrierOsc.start();
+        this.modOsc.start();
+        this.isPlaying = true;
+      }
+
+      setVolume(val0To1) {
+        this.baseVolume = val0To1;
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setTargetAtTime(this.baseVolume, this.ctx.currentTime, 0.05);
+        }
+      }
+
+      setFrequency(freqHz) {
+        if (this.carrierOsc && this.ctx) {
+          this.carrierOsc.frequency.setTargetAtTime(freqHz, this.ctx.currentTime, 0.05);
+          this.filterNode.frequency.setTargetAtTime(freqHz * 2.5, this.ctx.currentTime, 0.05);
+        }
+      }
+
+      applyCycleAttenuation(completedCycles, totalCycles) {
+        if (!this.ctx || !this.masterGain) return;
+        const remainingRatio = Math.max(0, 1 - (completedCycles / totalCycles));
+        const targetVol = this.baseVolume * remainingRatio;
+        this.masterGain.gain.setTargetAtTime(targetVol, this.ctx.currentTime, 0.3);
+      }
+
+      stop() {
+        if (!this.isPlaying) return;
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.5);
+        }
+        this.isPlaying = false;
+      }
+    }
+
+    const TOTAL_CYCLES = 7;
+    const CYCLE_COOLDOWN_MS = 4000;
+
+    const LANG_CONFIG = {
+      fr: {
+        linkText: "📜 Réciter le psaume en latin",
+        feedbackPrompt: "Mode Français : Répétez le psaume pour étouffer le signal !",
+        text: `« Par le <span class="word" data-kw="sang">sang</span> <span class="word" data-kw="effacé">effacé</span> des <span class="word" data-kw="lavandières">lavandières</span> de Rians,<br>
+        Que le <span class="word" data-kw="puits">puits</span> noir régurgite ses <span class="word" data-kw="ténèbres">ténèbres</span> et ses chants.<br>
+        Du <span class="word" data-kw="cimetière">cimetière</span> à l'<span class="word" data-kw="antenne">antenne</span>, que l'<span class="word" data-kw="onde">onde</span> se taise et se rompe,<br>
+        Que la <span class="word" data-kw="terre">terre</span> engloutisse la <span class="word" data-kw="malédiction">malédiction</span> avant que la nuit ne nous trompe. »`,
+        minMatches: 4,
+        keywords: [
+          { key: "sang", match: ["sang"] },
+          { key: "effacé", match: ["effacé", "efface"] },
+          { key: "lavandières", match: ["lavandières", "lavandieres", "lavandière"] },
+          { key: "puits", match: ["puits", "pui"] },
+          { key: "ténèbres", match: ["ténèbres", "tenebres"] },
+          { key: "cimetière", match: ["cimetière", "cimetiere"] },
+          { key: "antenne", match: ["antenne"] },
+          { key: "onde", match: ["onde"] },
+          { key: "terre", match: ["terre"] },
+          { key: "malédiction", match: ["malédiction", "malediction"] }
+        ]
+      },
+      la: {
+        linkText: "📜 Revenir à la récitation en français",
+        feedbackPrompt: "Mode Latin : Récitez la strophe à voix haute !",
+        text: `« Per sanguinem elutum lotricium <span class="word" data-kw="oppidi">oppidi</span> Rians,<br>
+        Eructet puteus <span class="word" data-kw="ater">ater</span> <span class="word" data-kw="tenebras">tenebras</span> suas carminesque suos.<br>
+        A coemeterio usque ad antennam, conticescat unda <span class="word" data-kw="et">et</span> frangatur.<br>
+        Devoret <span class="word" data-kw="terra">terra</span> exsecrationem, priusquam nox nos decipiat. »`,
+        minMatches: 2,
+        keywords: [
+          { key: "oppidi", match: ["oppidi", "opidi", "pidi", "au midi", "opide", "au pif"] },
+          { key: "ater", match: ["ater", "atere", "à terre", "ah ter", "ha terre", "atert", "atère", "a terre"] },
+          { key: "tenebras", match: ["tenebras", "tenebra", "ténèbres", "tenebres", "ténèbre", "ténèbra"] },
+          { key: "et", match: [" et ", " est ", " eh "] },
+          { key: "terra", match: ["terra", "terre", "téra", "terras"] }
+        ]
+      }
+    };
+
+    let currentLang = 'fr';
+
+    let currentCycle = 0;
+    let isListening = false;
+    let isCoolingDown = false;
+    let detectedInCycle = new Set();
+
+    let audioCtx, analyser, micStream, animId;
+    let cameraStream = null;
+    let recognition;
+    const radioSynth = new RadioStaticSynth();
+
+    const actScreen = document.getElementById('act-screen');
+    const victoryScreen = document.getElementById('victory-screen');
+    const startBtn = document.getElementById('start-btn');
+    const simBtn = document.getElementById('sim-btn');
+    const feedback = document.getElementById('feedback');
+    const cycleCountText = document.getElementById('cycle-count');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    
+    const incantationTextElem = document.getElementById('incantation-text');
+    const toggleLangLink = document.getElementById('toggle-lang-link');
+    let wordElems = document.querySelectorAll('.word');
+
+    const noiseVolInput = document.getElementById('noise-vol');
+    const noiseValLabel = document.getElementById('noise-val');
+    const freqShiftInput = document.getElementById('freq-shift');
+    const freqValLabel = document.getElementById('freq-val');
+
+    const webcamElem = document.getElementById('webcam');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoCanvas = document.getElementById('photo-canvas');
+    const snapBtn = document.getElementById('snap-btn');
+    const retakeBtn = document.getElementById('retake-btn');
+    const shareBtn = document.getElementById('share-btn');
+
+    noiseVolInput.addEventListener('input', (e) => {
+      const vol = e.target.value / 100;
+      noiseValLabel.textContent = `${e.target.value}%`;
+      radioSynth.setVolume(vol);
+    });
+
+    freqShiftInput.addEventListener('input', (e) => {
+      const freq = parseFloat(e.target.value);
+      freqValLabel.textContent = `${freq} Hz`;
+      radioSynth.setFrequency(freq);
+    });
+
+    toggleLangLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      currentLang = (currentLang === 'fr') ? 'la' : 'fr';
+      const config = LANG_CONFIG[currentLang];
+
+      incantationTextElem.innerHTML = config.text;
+      toggleLangLink.textContent = config.linkText;
+      wordElems = document.querySelectorAll('.word');
+
+      detectedInCycle.clear();
+      resetWordHighlights();
+
+      if (isListening) {
+        feedback.textContent = config.feedbackPrompt;
+      }
+    });
+
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function drawVisualizer(synthData = null) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const bufferLength = analyser ? analyser.frequencyBinCount : 32;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      if (analyser) {
+        analyser.getByteFrequencyData(dataArray);
+      } else if (synthData) {
+        dataArray.set(synthData);
+      } else if (isMobile && isListening) {
+        for(let i=0; i<bufferLength; i++) {
+          dataArray[i] = Math.random() * 50; 
+        }
+      }
+
+      const barWidth = (canvas.width / bufferLength) * 2.2;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        ctx.fillStyle = dataArray[i] > 60 ? '#ff0033' : '#800014';
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 2;
+      }
+
+      if (isListening) {
+        animId = requestAnimationFrame(() => drawVisualizer());
+      }
+    }
+
+    function initSpeech() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        feedback.textContent = "STT non supporté sur ce navigateur. Mode simulation disponible.";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'fr-FR'; // Toujours fr-FR pour la stabilité navigateur
+
+      recognition.onresult = (event) => {
+        if (isCoolingDown) return;
+
+        let transcript = "";
+        for (let i = 0; i < event.results.length; ++i) {
+          transcript += " " + event.results[i][0].transcript.toLowerCase();
+        }
+
+        const currentConfig = LANG_CONFIG[currentLang];
+
+        currentConfig.keywords.forEach(item => {
+          const matched = item.match.some(m => transcript.includes(m.toLowerCase()));
+          if (matched) {
+            detectedInCycle.add(item.key);
+            highlightWord(item.key);
+          }
+        });
+
+        if (detectedInCycle.size >= currentConfig.minMatches) {
+          validateCycle();
+        }
+      };
+
+      recognition.onend = () => {
+        if (isListening && currentCycle < TOTAL_CYCLES) {
+          try { recognition.start(); } catch(e) {}
+        }
+      };
+
+      recognition.onerror = () => {
+        if (isListening && !isCoolingDown) {
+          feedback.textContent = "Parlez bien distinctement dans le micro...";
+        }
+      };
+    }
+
+    function highlightWord(kw) {
+      wordElems.forEach(el => {
+        if (el.getAttribute('data-kw') === kw) {
+          el.classList.add('active');
+        }
+      });
+    }
+
+    function resetWordHighlights() {
+      wordElems.forEach(el => el.classList.remove('active'));
+    }
+
+    function validateCycle() {
+      if (isCoolingDown) return;
+
+      currentCycle++;
+      const pill = document.getElementById(`pill-${currentCycle}`);
+      if (pill) pill.classList.add('active');
+
+      cycleCountText.textContent = `${currentCycle} / ${TOTAL_CYCLES} CYCLES`;
+      radioSynth.applyCycleAttenuation(currentCycle, TOTAL_CYCLES);
+
+      if (currentCycle >= TOTAL_CYCLES) {
+        completeRitual();
+        return;
+      }
+
+      isCoolingDown = true;
+      feedback.textContent = `STROPHE ${currentCycle} VALIDÉE ! Attente de résonance (4s)...`;
+
+      setTimeout(() => {
+        detectedInCycle.clear();
+        resetWordHighlights();
+        isCoolingDown = false;
+
+        if (isListening) {
+          feedback.textContent = LANG_CONFIG[currentLang].feedbackPrompt;
+        }
+      }, CYCLE_COOLDOWN_MS);
+    }
+
+    function completeRitual() {
+      stopListening();
+
+      const victorySfx = new Audio('cri_victoire.mp3');
+      victorySfx.play().catch(err => {
+        console.warn("Impossible de lire l'audio 'cri_victoire.mp3'.", err);
+      });
+
+      actScreen.style.display = 'none';
+      victoryScreen.style.display = 'block';
+
+      startCamera();
+    }
+
+    async function startListening() {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        radioSynth.init(audioCtx);
+        radioSynth.start();
+
+        if (recognition) {
+          try { 
+            recognition.lang = 'fr-FR';
+            recognition.start(); 
+          } catch(e) { console.warn("Erreur STT", e); }
+        }
+
+        if (!isMobile) {
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const source = audioCtx.createMediaStreamSource(micStream);
+          
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;
+          
+          source.connect(analyser);
+          radioSynth.masterGain.connect(analyser);
+        }
+        
+        radioSynth.masterGain.connect(audioCtx.destination);
+        
+        isListening = true;
+        startBtn.classList.add('recording');
+        startBtn.textContent = "ÉCOUTE EN COURS... (STOP)";
+        feedback.textContent = LANG_CONFIG[currentLang].feedbackPrompt;
+
+        drawVisualizer();
+      } catch (err) {
+        feedback.textContent = "Micro non disponible. Mode simulation actif.";
+        console.error(err);
+      }
+    }
+
+    function stopListening() {
+      isListening = false;
+      isCoolingDown = false;
+      if (recognition) try { recognition.stop(); } catch(e){}
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
+      if (radioSynth) radioSynth.stop();
+      if (audioCtx) audioCtx.close();
+      if (animId) cancelAnimationFrame(animId);
+
+      startBtn.classList.remove('recording');
+      startBtn.textContent = "🎙 INVOKER L'ÉCHO & ACTIVER LA RADIO";
+    }
+
+    async function startCamera() {
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
+          audio: false 
+        });
+        webcamElem.srcObject = cameraStream;
+      } catch (err) {
+        console.error("Erreur d'accès à la caméra :", err);
+      }
+    }
+
+    snapBtn.addEventListener('click', () => {
+      if (!webcamElem.srcObject) return;
+
+      const w = webcamElem.videoWidth || 640;
+      const h = webcamElem.videoHeight || 480;
+      photoCanvas.width = w;
+      photoCanvas.height = h;
+
+      const pCtx = photoCanvas.getContext('2d');
+      pCtx.drawImage(webcamElem, 0, 0, w, h);
+
+      pCtx.fillStyle = "rgba(0, 255, 204, 0.8)";
+      pCtx.font = "bold 16px Courier New";
+      pCtx.fillText("PAIX À RIANS — ÉQUIPE DE VICTOIRE", 15, h - 20);
+
+      const dataUrl = photoCanvas.toDataURL('image/png');
+      photoPreview.src = dataUrl;
+
+      webcamElem.style.display = 'none';
+      photoPreview.style.display = 'block';
+
+      snapBtn.style.display = 'none';
+      retakeBtn.style.display = 'inline-block';
+      shareBtn.style.display = 'inline-block';
+    });
+
+    retakeBtn.addEventListener('click', () => {
+      photoPreview.style.display = 'none';
+      webcamElem.style.display = 'block';
+
+      snapBtn.style.display = 'inline-block';
+      retakeBtn.style.display = 'none';
+      shareBtn.style.display = 'none';
+    });
+
+    shareBtn.addEventListener('click', async () => {
+      photoCanvas.toBlob(async (blob) => {
+        const file = new File([blob], 'victoire-rians.png', { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "Enquête de Rians résolue !",
+              text: "Nous avons résolu l'enquête et apporté la paix à Rians !",
+              files: [file]
+            });
+          } catch (e) {
+            console.warn("Partage annulé ou échoué.", e);
+          }
+        } else {
+          const a = document.createElement('a');
+          a.href = photoPreview.src;
+          a.download = 'victoire-rians.png';
+          a.click();
+        }
+      }, 'image/png');
+    });
+
+    startBtn.addEventListener('click', () => {
+      if (!isListening) startListening();
+      else stopListening();
+    });
+
+    simBtn.addEventListener('click', () => {
+      if (currentCycle < TOTAL_CYCLES && !isCoolingDown) {
+        const fakeData = Array.from({length: 32}, () => Math.floor(Math.random() * 200 + 55));
+        drawVisualizer(fakeData);
+        LANG_CONFIG[currentLang].keywords.forEach(item => highlightWord(item.key));
+        
+        setTimeout(() => {
+          validateCycle();
+        }, 400);
+      }
+    });
+
+    initSpeech();
+  </script>
+</body>
+</html>
