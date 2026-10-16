@@ -62,9 +62,11 @@
       }
       @keyframes pulse-danger { 0% { box-shadow: 0 0 4px rgba(255,0,51,0.3); } 100% { box-shadow: 0 0 16px rgba(255,0,51,0.8); } }
 
-      /* Caméra propre avec LASER PREMIUM */
+      /* Caméra propre avec superposition dynamique des yeux */
       .camera-box { position: relative; width: 100%; height: 180px; background: #000; border: 1px solid var(--border-hud); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
       #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: grayscale(0.2) contrast(1.1); }
+      #eye-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); z-index: 12; }
+      
       .cam-overlay-info { position: absolute; top: 8px; left: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.58rem; background: rgba(0,0,0,0.7); border: 1px solid var(--red-blood); color: #fff; padding: 3px 6px; border-radius: 2px; z-index: 15; }
       .eye-status-badge { position: absolute; bottom: 8px; right: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: bold; padding: 4px 8px; border-radius: 3px; background: rgba(0, 255, 102, 0.25); border: 1px solid var(--green-spectral); color: var(--green-spectral); z-index: 15; }
       .eye-status-badge.alert { background: rgba(255, 0, 51, 0.4); border-color: var(--red-blood); color: #ffffff; }
@@ -132,6 +134,7 @@
         <div class="cam-overlay-info">FACE-TRACKING WebAR : ACTIF</div>
         <div class="laser-scanner" id="laser"></div>
         <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="eye-canvas"></canvas>
         <div class="eye-status-badge" id="eye-badge">REGARD : ALIGNÉ</div>
       </div>
 
@@ -243,16 +246,60 @@
 
       function startFaceTracker() {
         const videoElement = document.getElementById('webcam');
+        const eyeCanvas = document.getElementById('eye-canvas');
+        const ctx = eyeCanvas.getContext('2d');
+
         const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
         
         faceMesh.onResults((results) => {
+          if (eyeCanvas.width !== videoElement.videoWidth || eyeCanvas.height !== videoElement.videoHeight) {
+            eyeCanvas.width = videoElement.videoWidth || 480;
+            eyeCanvas.height = videoElement.videoHeight || 360;
+          }
+          ctx.clearRect(0, 0, eyeCanvas.width, eyeCanvas.height);
+
           if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
           const landmarks = results.multiFaceLandmarks[0];
           
           const noseY = landmarks[1].y, chinY = landmarks[152].y, foreheadY = landmarks[10].y;
           const faceHeight = Math.abs(chinY - foreheadY);
           const noseRelativePos = (noseY - foreheadY) / faceHeight;
+
+          const leftIris = landmarks[468];
+          const rightIris = landmarks[473];
+
+          if (leftIris && rightIris) {
+            ctx.save();
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 8;
+
+            if (noseRelativePos > 0.62 || foreheadY > 0.35) {
+              ctx.strokeStyle = '#ff0033';
+              ctx.fillStyle = 'rgba(255, 0, 51, 0.4)';
+              ctx.shadowColor = '#ff0033';
+              
+              ctx.beginPath();
+              ctx.arc(leftIris.x * eyeCanvas.width, leftIris.y * eyeCanvas.height, 18, 0, 2 * Math.PI);
+              ctx.fill(); ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(rightIris.x * eyeCanvas.width, rightIris.y * eyeCanvas.height, 18, 0, 2 * Math.PI);
+              ctx.fill(); ctx.stroke();
+            } else {
+              ctx.strokeStyle = '#00ff66';
+              ctx.shadowColor = '#00ff66';
+
+              ctx.beginPath();
+              ctx.arc(leftIris.x * eyeCanvas.width, leftIris.y * eyeCanvas.height, 12, 0, 2 * Math.PI);
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(rightIris.x * eyeCanvas.width, rightIris.y * eyeCanvas.height, 12, 0, 2 * Math.PI);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
 
           if (noseRelativePos > 0.62 || foreheadY > 0.35) {
             if (!isHeadDown && !isBridgeCompleted) {
@@ -267,10 +314,10 @@
               document.getElementById('bridge-fill').style.width = '0%';
               document.getElementById('bridge-percent').innerText = '0%';
               
-              // Masquage rouge sang réduit à 1 seconde exactement (jamais permanent)
+              // Masquage rouge sang réglé à 2 secondes exactement
               gsap.killTweensOf("#flash");
               gsap.set("#flash", { opacity: 0.85 });
-              gsap.to("#flash", { opacity: 0, duration: 0.5, delay: 1 });
+              gsap.to("#flash", { opacity: 0, duration: 0.5, delay: 2 });
               
               document.getElementById('terminal-content').style.color = "#ff0033";
               document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! L'anomalie frappe l'écran. Recommencez !";
