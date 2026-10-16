@@ -34,7 +34,7 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-between p-4">
 
-    <!-- AUDIO LOCAL (Racine GitHub) -->
+    <!-- AUDIO LOCAL (Racine GitHub)[cite: 2] -->
     <audio id="audioEnigme" src="./enigme1.mp3" preload="auto"></audio>
 
     <!-- HEADER -->
@@ -55,14 +55,19 @@
                 </svg>
             </div>
             <h2 class="text-lg font-bold text-red-500 uppercase tracking-wider">Recherche du sanctuaire</h2>
-            <p class="text-sm text-gray-400">Approchez-vous du parvis de l'église (Cibles : N 47° 11,137' E 2° 36,777').</p>
+            <p class="text-sm text-gray-400">Approchez-vous du parvis de l'église (Cibles : N 47° 11,137' E 2° 36,777')[cite: 2].</p>
             
             <div class="bg-red-950/20 border border-red-900/40 p-3 rounded-lg">
                 <p id="distance-display" class="text-sm font-mono text-red-300">Calcul de la position GPS...</p>
                 <p id="status-gps" class="text-xs text-gray-500 mt-1">En attente de signal satellite...</p>
             </div>
 
-            <button id="play-audio-btn" type="button" class="w-full blood-btn text-white text-xs py-2.5 rounded font-bold uppercase tracking-wider mb-2 cursor-pointer">
+            <!-- Bouton d'activation manuelle obligatoire pour contourner les restrictions mobiles -->
+            <button id="activate-ar-btn" type="button" class="hidden w-full blood-btn text-white text-sm py-3 rounded font-bold uppercase tracking-wider animate-bounce cursor-pointer">
+                📷 ACTIVER LA CAMÉRA & LE SCELLÉ AR
+            </button>
+
+            <button id="play-audio-btn" type="button" class="w-full bg-neutral-900 border border-red-900/50 text-red-400 text-xs py-2 rounded font-bold uppercase tracking-wider hover:text-white transition cursor-pointer">
                 🔊 Écouter / Relancer l'indice audio
             </button>
 
@@ -74,10 +79,10 @@
         <!-- ÉTAPE 2 : CONTENEUR AR (Masqué par défaut) -->
         <div id="ar-section" class="hidden w-full h-[400px] relative blood-border rounded-xl overflow-hidden">
             <div class="absolute top-2 left-2 z-20 bg-black/70 px-3 py-1 rounded text-xs text-red-400 border border-red-900">
-                Mode AR Actif : Visez la porte en bois
+                Mode AR Actif : Visez la porte en bois[cite: 2]
             </div>
             
-            <!-- A-Frame / MindAR Scene avec targets.mind à la racine -->
+            <!-- A-Frame / MindAR Scene avec targets.mind à la racine[cite: 2] -->
             <a-scene 
                 embedded 
                 mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no;" 
@@ -100,10 +105,10 @@
         <div class="bg-zinc-950 blood-border rounded-xl p-6 w-full max-w-md space-y-4 relative">
             <h3 class="text-xl font-bold text-red-600 blood-glow text-center uppercase">Le Sceau de l'Église</h3>
             <p class="text-sm text-gray-300 text-center">
-                La porte s'est entrouverte. Pour franchir le seuil, répondez à l'énigme :
+                La porte s'est entrouverte. Pour franchir le seuil, répondez à l'énigme :[cite: 2]
             </p>
             <div class="bg-red-950/30 p-3 rounded border border-red-900 text-red-200 text-xs italic text-center space-y-2">
-                <p>"Compte les clous noirs ."</p>
+                <p>"Compte les clous noirs ."[cite: 2]</p>
                 <button type="button" class="modal-audio-btn text-red-400 underline text-[10px] uppercase font-bold cursor-pointer">
                     🔊 Réécouter l'indice audio
                 </button>
@@ -113,7 +118,7 @@
                 <input type="text" id="riddle-answer" placeholder="Votre réponse..." required
                     class="w-full bg-black border border-red-900 rounded p-3 text-red-100 focus:outline-none focus:border-red-600 text-center uppercase tracking-widest font-mono">
                 
-                <div id="error-msg" class="text-xs text-red-500 text-center hidden">Réponse incorrecte, le sang coule à nouveau...</div>
+                <div id="error-msg" class="text-xs text-red-500 text-center hidden">Réponse incorrecte, le sang coule à nouveau...[cite: 2]</div>
 
                 <button type="submit" class="w-full blood-btn text-white font-bold py-3 rounded uppercase tracking-widest text-sm shadow-lg cursor-pointer">
                     Sceller le pacte
@@ -123,10 +128,10 @@
     </div>
 
     <footer class="text-center text-xs text-gray-600 py-2">
-        Escape Game Acte I &bull; Ne regardez pas en arrière
+        Escape Game Acte I &bull; Ne regardez pas en arrière[cite: 2]
     </footer>
 
-    <!-- SCRIPT LOGIQUE CORRIGÉ -->
+    <!-- SCRIPT LOGIQUE ROBUSTE -->
     <script>
         const TARGET_LAT = 47.185617;
         const TARGET_LON = 2.612950;
@@ -155,7 +160,7 @@
                 audioElement.currentTime = 0;
                 await audioElement.play();
             } catch (e) {
-                console.warn("Lecture audio bloquée par la politique du navigateur :", e);
+                console.warn("Lecture audio bloquée :", e);
             }
         }
 
@@ -171,7 +176,13 @@
                         document.getElementById('status-gps').innerText = `Précision GPS : ±${Math.round(position.coords.accuracy)}m`;
 
                         if (distance <= THRESHOLD_METERS) {
-                            triggerProximity();
+                            if (watchId !== null) {
+                                navigator.geolocation.clearWatch(watchId);
+                                watchId = null;
+                            }
+                            document.getElementById('status-gps').innerText = "Périmètre atteint ! Sanctuaire détecté.";
+                            // Afficher le bouton d'activation manuelle pour respecter le User Gesture des mobiles
+                            document.getElementById('activate-ar-btn').classList.remove('hidden');
                         }
                     },
                     (error) => {
@@ -184,40 +195,32 @@
             }
         }
 
-        function triggerProximity() {
+        // Fonction exécutée strictement sur clic utilisateur (Geste valide pour la caméra)
+        async function launchARExperience() {
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
             }
 
-            // Déclenchement de l'audio local enigme1.mp3
-            playAudioDirectly();
+            // Lancement audio dans le même flux utilisateur
+            await playAudioDirectly();
 
-            // 1. Masquer le GPS et afficher la section AR
+            // Masquer la section GPS et afficher la section AR
             document.getElementById('gps-section').classList.add('hidden');
             document.getElementById('ar-section').classList.remove('hidden');
 
-            // 2. CORRECTIF CRITIQUE : Laisser le navigateur effectuer le reflow du DOM
-            // avant d'initialiser MindAR pour éviter un canvas WebGL 0x0 pixels
-            setTimeout(() => {
+            // Initialisation de MindAR avec délai de reflow DOM
+            setTimeout(async () => {
                 const sceneEl = document.querySelector('a-scene');
                 if (sceneEl) {
-                    const startAR = async () => {
-                        const arSystem = sceneEl.systems['mindar-image-system'];
-                        if (arSystem) {
-                            try {
-                                await arSystem.start();
-                            } catch (err) {
-                                console.error("Échec du démarrage de MindAR / Caméra :", err);
-                                alert("Impossible d'accéder à la caméra. Vérifiez que vous êtes en HTTPS et que l'autorisation est accordée.");
-                            }
+                    const arSystem = sceneEl.systems['mindar-image-system'];
+                    if (arSystem) {
+                        try {
+                            await arSystem.start();
+                        } catch (err) {
+                            console.error("Échec du démarrage de MindAR :", err);
+                            alert("Erreur d'accès à la caméra. Vérifiez les autorisations HTTPS.");
                         }
-                    };
-
-                    if (sceneEl.hasLoaded) {
-                        startAR();
-                    } else {
-                        sceneEl.addEventListener('render-start', startAR);
                     }
                 }
             }, 100);
@@ -226,11 +229,14 @@
         document.addEventListener("DOMContentLoaded", () => {
             initGPS();
 
+            document.getElementById('activate-ar-btn').addEventListener('click', launchARExperience);
             document.getElementById('play-audio-btn').addEventListener('click', playAudioDirectly);
             document.querySelectorAll('.modal-audio-btn').forEach(btn => {
                 btn.addEventListener('click', playAudioDirectly);
             });
-            document.getElementById('force-trigger-btn').addEventListener('click', triggerProximity);
+            
+            // Le mode test utilise la même fonction de lancement AR déclenchée par clic
+            document.getElementById('force-trigger-btn').addEventListener('click', launchARExperience);
 
             const targetEntity = document.querySelector('#ar-target');
             if (targetEntity) {
@@ -242,7 +248,7 @@
             document.getElementById('riddle-form').addEventListener('submit', (event) => {
                 event.preventDefault();
                 const answerInput = document.getElementById('riddle-answer').value.trim().toLowerCase();
-                const correctAnswers = ["20"]; 
+                const correctAnswers = ["20"];[cite: 2]
 
                 if (correctAnswers.includes(answerInput)) {
                     window.location.href = "acte1bis.html";
