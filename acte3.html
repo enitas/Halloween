@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-    <!-- Librairies FaceMesh, Gsap, Howler, Supabase, Leaflet -->
+    <!-- Librairies FaceMesh, Gsap, Howler, Supabase, Leaflet[cite: 4] -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -45,7 +45,7 @@
       .header-title { font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.1rem; color: #fff; text-shadow: 0 0 10px var(--red-blood); text-align: center; letter-spacing: 2px; margin: 0 0 4px 0; }
       .header-sub { font-family: 'Orbitron', sans-serif; font-size: 0.62rem; color: var(--red-blood); display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255, 0, 51, 0.25); padding-bottom: 5px; margin-bottom: 10px; }
       
-      /* GEOFENCE OVERLAY (Bloque le jeu) */
+      /* GEOFENCE OVERLAY */
       .geofence-lock {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(5, 2, 3, 0.95); z-index: 50; display: flex; flex-direction: column;
@@ -69,7 +69,6 @@
       .eye-status-badge { position: absolute; bottom: 8px; right: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: bold; padding: 4px 8px; border-radius: 3px; background: rgba(0, 255, 102, 0.25); border: 1px solid var(--green-spectral); color: var(--green-spectral); z-index: 15; }
       .eye-status-badge.alert { background: rgba(255, 0, 51, 0.4); border-color: var(--red-blood); color: #ffffff; }
       
-      /* Laser holographique CSS */
       .laser-scanner {
         position: absolute; left: 0; width: 100%; height: 2px;
         background: rgba(0, 255, 102, 0.8);
@@ -108,7 +107,7 @@
       <!-- ÉCRAN DE BLOCAGE GPS -->
       <div class="geofence-lock" id="geofence-screen">
         <div class="geofence-title">⚠️ VERROUILLAGE GÉOGRAPHIQUE</div>
-        <div class="geofence-desc">Le protocole de l'Acte III exige votre présence absolue sur le lieu exact : PONT DE L'OUATIER (N 47° 11.218' E 2° 36.750').</div>
+        <div class="geofence-desc">Le protocole de l'Acte III exige votre présence absolue sur le lieu exact : PONT DE L'OUATIER (N 47° 11.218' E 2° 36.750')[cite: 4].</div>
         <div class="geofence-dist" id="geofence-dist-text">DISTANCE : CALCUL...</div>
         <div class="geofence-desc">L'interface se débloquera automatiquement à moins de 15 mètres du pont. Avancez.</div>
       </div>
@@ -121,16 +120,16 @@
 
       <div class="terminal-box" id="terminal">
         <div id="terminal-content">
-          [Bip de validation système — Chronomètre désactivé]<br><br>
-          ACCÈS AUTORISÉ. LOCALISATION CONFIRMÉE : PONT DE L'OUATIER.<br>
-          Il ne faut pas lambiner, votre mission n'est pas encore finie.
+          [Bip de validation système — Chronomètre désactivé][cite: 4]<br><br>
+          ACCÈS AUTORISÉ. LOCALISATION CONFIRMÉE : PONT DE L'OUATIER[cite: 4].<br>
+          Il ne faut pas lambiner, votre mission n'est pas encore finie[cite: 4].
         </div>
       </div>
 
-      <div class="danger-banner">⚠ ANOMALIE : DÉFENSE DE BAISSER LES YEUX !</div>
+      <div class="danger-banner">⚠ ANOMALIE : DÉFENSE DE BAISSER LES YEUX ![cite: 4]</div>
 
       <div class="camera-box">
-        <div class="cam-overlay-info">FACE-TRACKING WebAR : ACTIF</div>
+        <div class="cam-overlay-info">FACE-TRACKING WebAR : ACTIF[cite: 4]</div>
         <div class="laser-scanner" id="laser"></div>
         <video id="webcam" autoplay playsinline muted></video>
         <div class="eye-status-badge" id="eye-badge">REGARD : ALIGNÉ</div>
@@ -155,8 +154,8 @@
       </div>
 
       <div class="puzzle-box" id="puzzle-box">
-        <div class="puzzle-title">PROTOCOLE COÉQUIPIERS : VALEUR SPECTRALE</div>
-        <div class="puzzle-desc">Comptez le nombre total de rambardes du Pont Ouatier et multipliez-le par <strong>3,2</strong> (sans calculatrice !).</div>
+        <div class="puzzle-title">PROTOCOLE COÉQUIPIERS : VALEUR SPECTRALE[cite: 4]</div>
+        <div class="puzzle-desc">Comptez le nombre total de rambardes du Pont Ouatier et multipliez-le par <strong>3,2</strong> (sans calculatrice !)[cite: 4].</div>
         <div class="input-wrapper">
           <input type="number" step="0.1" class="rambarde-input" id="rambarde-val" placeholder="Résultat..." />
           <button class="btn-validate" id="btn-valide">VALIDER</button>
@@ -166,20 +165,18 @@
     </div>
 
     <script>
-      const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";
-      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";
-      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      const currentTeam = localStorage.getItem('rians_team') || 'TEAM1';
+      const SUPABASE_URL = "https://iirqiuymgwlivhxwbwlz.supabase.co";[cite: 4]
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcnFpdXltZ3dsaXZoeHdid2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MDA5NjQsImV4cCI6MjEwNjI3Njk2NH0.tVaRU9S3qL01gj_FzsnoLT4j7ywKSc8Qz96fT8bK-yk";[cite: 4]
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);[cite: 4]
+      const currentTeam = localStorage.getItem('rians_team') || 'TEAM1';[cite: 4]
       
-      // Coordonnées exactes (N 47° 11.218' E 2° 36.750' = 47.186967, 2.612500)
-      const PONT_OUATIER = { lat: 47.186967, lng: 2.612500 };
+      const PONT_OUATIER = { lat: 47.186967, lng: 2.612500 };[cite: 4]
 
-      const soundScream = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'], volume: 0.9 });
-      const soundSuccess = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'], volume: 1.0 });
+      const soundScream = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'], volume: 0.9 });[cite: 4]
+      const soundSuccess = new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3'], volume: 1.0 });[cite: 4]
 
-      // MATH : Distance de Haversine
       function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Rayon de la terre en mètres
+        const R = 6371e3;
         const p1 = lat1 * Math.PI/180;
         const p2 = lat2 * Math.PI/180;
         const dp = (lat2-lat1) * Math.PI/180;
@@ -189,12 +186,10 @@
         return R * c;
       }
 
-      // ETAT DU JEU
-      let isGeofenceUnlocked = false; // Bloque le tracker au départ
+      let isGeofenceUnlocked = false;
       let bridgeProgress = 0, isBridgeCompleted = false, isHeadDown = false;
       let cameraInstance = null;
 
-      // CARTE (CartoDB Dark)
       const map = L.map('map', { zoomControl: false }).setView([PONT_OUATIER.lat, PONT_OUATIER.lng], 18);
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, subdomains: 'abcd' }).addTo(map);
       const pontIcon = L.divIcon({ className: 'custom-pont-icon', html: `<div style="width:14px;height:14px;background:#00ff66;border-radius:50%;box-shadow:0 0 10px #00ff66;border:2px solid #fff;"></div>`, iconSize: [14, 14] });
@@ -202,7 +197,6 @@
 
       let playerMarker = null;
 
-      // GPS SURVEILLANCE CONSTANTE
       if ('geolocation' in navigator) {
         navigator.geolocation.watchPosition((pos) => {
           const lat = pos.coords.latitude; const lng = pos.coords.longitude;
@@ -221,12 +215,11 @@
           
           if (!isGeofenceUnlocked) {
             document.getElementById('geofence-dist-text').innerText = `DISTANCE : ${distanceMeters} m`;
-            // DÉBLOCAGE SI DISTANCE < 15 Mètres
             if (distanceMeters <= 15) {
               isGeofenceUnlocked = true;
               document.getElementById('geofence-screen').style.display = 'none';
-              soundSuccess.play();
-              startFaceTracker(); // On démarre la caméra et le jeu uniquement à ce moment
+              soundSuccess.play();[cite: 4]
+              startFaceTracker();[cite: 4]
             }
           }
 
@@ -235,11 +228,10 @@
         document.getElementById('geofence-dist-text').innerText = "GPS NON SUPPORTÉ";
       }
 
-      // FACE TRACKING 
       function startFaceTracker() {
         const videoElement = document.getElementById('webcam');
         const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });[cite: 4]
         
         faceMesh.onResults((results) => {
           if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
@@ -249,23 +241,26 @@
           const faceHeight = Math.abs(chinY - foreheadY);
           const noseRelativePos = (noseY - foreheadY) / faceHeight;
 
-          // Tête baissée
           if (noseRelativePos > 0.62 || foreheadY > 0.35) {
             if (!isHeadDown && !isBridgeCompleted) {
               isHeadDown = true;
               document.getElementById('eye-badge').classList.add('alert');
               document.getElementById('eye-badge').innerText = "YEUX BAISSÉS !";
               document.getElementById('laser').classList.add('alert-mode');
-              soundScream.play();
+              soundScream.play();[cite: 4]
               if ('vibrate' in navigator) navigator.vibrate([200, 50, 200]);
 
               bridgeProgress = 0;
               document.getElementById('bridge-fill').style.width = '0%';
               document.getElementById('bridge-percent').innerText = '0%';
-              gsap.to("#flash", { opacity: 0.9, duration: 0.1, yoyo: true, repeat: 3 });
+              
+              // MODIFICATION 1 : Filtre rouge sang maintenu pendant 30 secondes en cas d'échec
+              gsap.killTweensOf("#flash");
+              gsap.set("#flash", { opacity: 0.85 });
+              gsap.to("#flash", { opacity: 0, duration: 1, delay: 30 }); // Disparition progressive après 30s
               
               document.getElementById('terminal-content').style.color = "#ff0033";
-              document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! L'anomalie s'approche. Recommencez !";
+              document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! L'anomalie aveugle l'écran pour 30 secondes. Recommencez !";
             }
           } else {
             if (isHeadDown) {
@@ -275,7 +270,7 @@
               document.getElementById('laser').classList.remove('alert-mode');
               
               document.getElementById('terminal-content').style.color = "#ff9999";
-              document.getElementById('terminal-content').innerText = "> Gardez la tête haute devant la caméra pendant la traversée du pont...";
+              document.getElementById('terminal-content').innerText = "> Gardez la tête haute devant la caméra pendant la traversée du pont...[cite: 4]";
             }
           }
         });
@@ -283,10 +278,9 @@
         cameraInstance = new Camera(videoElement, { onFrame: async () => { await faceMesh.send({ image: videoElement }); }, width: 480, height: 360, facingMode: 'user' });
         cameraInstance.start().catch(() => {});
 
-        // Progression de la barre
         setInterval(() => {
           if (!isHeadDown && !isBridgeCompleted && bridgeProgress < 100) {
-            bridgeProgress += 2.5; // Fini en 40s
+            bridgeProgress += 2.5;
             if (bridgeProgress > 100) bridgeProgress = 100;
             document.getElementById('bridge-fill').style.width = `${bridgeProgress}%`;
             document.getElementById('bridge-percent').innerText = `${Math.round(bridgeProgress)}%`;
@@ -296,42 +290,62 @@
               document.getElementById('eye-badge').innerText = "TRAVERSÉE SÉCURISÉE";
               document.getElementById('eye-badge').style.background = "rgba(0,255,102,0.8)";
               document.getElementById('laser').style.display = "none";
-              soundSuccess.play();
+              soundSuccess.play();[cite: 4]
               document.getElementById('terminal-content').style.color = "#00ff66";
-              document.getElementById('terminal-content').innerText = "> SUCCÈS : Pont franchi. Entrez le calcul des rambardes pour sceller l'Acte III.";
+              document.getElementById('terminal-content').innerText = "> SUCCÈS : Pont franchi. Entrez le calcul des rambardes pour sceller l'Acte III[cite: 4].";
             }
           }
         }, 1000);
       }
 
-      // FIN D'ACTE 3
+      // MODIFICATION 2 : Validation de la réponse 48 et redirection vers acte4.html
       document.getElementById('btn-valide').addEventListener('click', async () => {
         const val = parseFloat(document.getElementById('rambarde-val').value.replace(',', '.'));
         if (isNaN(val)) return alert("Veuillez entrer un nombre valide.");
 
-        soundSuccess.play();
+        if (val !== 48) {
+          document.getElementById('terminal-content').style.color = "#ff0033";
+          document.getElementById('terminal-content').innerText = `> ERREUR : La valeur spectrale [${val}] est incorrecte. Le sceau résiste !`;
+          if ('vibrate' in navigator) navigator.vibrate(200);
+          return;
+        }
+
+        soundSuccess.play();[cite: 4]
         document.getElementById('puzzle-box').style.borderColor = "var(--green-spectral)";
-        document.getElementById('terminal-content').innerText = `> VALEUR SPECTRALE [${val}] CONFIRMÉE !\n> ACTE III TERMINÉ ! SAUVEGARDE EN COURS...`;
+        
+        gsap.to("#flash", { opacity: 0.9, duration: 0.1, yoyo: true, repeat: 3 });[cite: 4]
+        
+        document.getElementById('terminal-content').style.color = "#00ff66";
+        document.getElementById('terminal-content').innerText = `> VALEUR SPECTRALE [48] CONFIRMÉE !\n> ACTE III VALIDÉ. Redirection vers l'Acte IV...`;
 
         try {
-          let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');
-          if (!localTokens.includes('pont_ouatier')) localTokens.push('pont_ouatier');
-          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));
+          let localTokens = JSON.parse(localStorage.getItem(`rians_tokens_${currentTeam}`) || '[]');[cite: 4]
+          if (!localTokens.includes('pont_ouatier')) localTokens.push('pont_ouatier');[cite: 4]
+          localStorage.setItem(`rians_tokens_${currentTeam}`, JSON.stringify(localTokens));[cite: 4]
 
-          await db.from('equipes').upsert({ code_equipe: currentTeam, acte3_balises: localTokens, acte3_cleared: true, updated_at: new Date().toISOString() });
+          await db.from('equipes').upsert({ code_equipe: currentTeam, acte3_balises: localTokens, acte3_cleared: true, updated_at: new Date().toISOString() });[cite: 4]
           
-          setTimeout(() => { alert("L'acte 3 est validé et enregistré !"); }, 2000);
-        } catch (e) { console.error(e); }
+          // Redirection vers acte4.html après 2.5 secondes
+          setTimeout(() => {
+            window.location.href = 'acte4.html';
+          }, 2500);
+
+        } catch (e) { 
+          console.error(e);
+          // Redirection de secours même si Supabase rencontre un hic réseau sur le terrain
+          setTimeout(() => {
+            window.location.href = 'acte4.html';
+          }, 2500);
+        }
       });
       
-      // CHEAT POUR DÉVELOPPEUR (Cliques 5 fois sur le titre pour passer le GPS pendant tes tests)
       let cheatClicks = 0;
       document.querySelector('.geofence-title').addEventListener('click', () => {
           cheatClicks++;
           if (cheatClicks >= 5) {
               isGeofenceUnlocked = true;
               document.getElementById('geofence-screen').style.display = 'none';
-              startFaceTracker();
+              startFaceTracker();[cite: 4]
           }
       });
     </script>
