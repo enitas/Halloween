@@ -62,7 +62,7 @@
       }
       @keyframes pulse-danger { 0% { box-shadow: 0 0 4px rgba(255,0,51,0.3); } 100% { box-shadow: 0 0 16px rgba(255,0,51,0.8); } }
 
-      /* Caméra propre avec superposition des lunettes holographiques */
+      /* Caméra propre avec superposition des lunettes holographiques ajustées */
       .camera-box { position: relative; width: 100%; height: 180px; background: #000; border: 1px solid var(--border-hud); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
       #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: grayscale(0.2) contrast(1.1); }
       #glasses-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); z-index: 12; }
@@ -280,7 +280,6 @@
             ctx.fillStyle = isAlert ? 'rgba(255, 0, 51, 0.25)' : 'rgba(0, 255, 102, 0.08)';
             ctx.shadowColor = color;
 
-            // Calcul de la taille et position des lunettes cyber / tactiques autour des yeux
             const lx = leftIris.x * glassesCanvas.width;
             const ly = leftIris.y * glassesCanvas.height;
             const rx = rightIris.x * glassesCanvas.width;
@@ -289,20 +288,22 @@
             const dx = rx - lx;
             const dy = ry - ly;
             const eyeDist = Math.sqrt(dx * dx + dy * dy);
+            
+            // Largeur parfaite (0.9) et hauteur augmentée (1.0)
             const lensW = eyeDist * 0.9;
-            const lensH = eyeDist * 0.6;
+            const lensH = eyeDist * 1.0;
 
-            // Verre gauche (Lunette cybernétique)
+            // Verre gauche
             ctx.beginPath();
-            ctx.roundRect(lx - lensW/2, ly - lensH/2, lensW, lensH, 6);
+            ctx.roundRect(lx - lensW/2, ly - lensH/2, lensW, lensH, 8);
             ctx.fill(); ctx.stroke();
 
-            // Verre droit (Lunette cybernétique)
+            // Verre droit
             ctx.beginPath();
-            ctx.roundRect(rx - lensW/2, ry - lensH/2, lensW, lensH, 6);
+            ctx.roundRect(rx - lensW/2, ry - lensH/2, lensW, lensH, 8);
             ctx.fill(); ctx.stroke();
 
-            // Pont de nez des lunettes
+            // Pont de nez
             ctx.beginPath();
             ctx.moveTo(lx + lensW/2, ly);
             ctx.lineTo(rx - lensW/2, ry);
