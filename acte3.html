@@ -62,10 +62,10 @@
       }
       @keyframes pulse-danger { 0% { box-shadow: 0 0 4px rgba(255,0,51,0.3); } 100% { box-shadow: 0 0 16px rgba(255,0,51,0.8); } }
 
-      /* Caméra propre avec superposition dynamique des yeux */
+      /* Caméra propre avec superposition des lunettes holographiques */
       .camera-box { position: relative; width: 100%; height: 180px; background: #000; border: 1px solid var(--border-hud); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
       #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: grayscale(0.2) contrast(1.1); }
-      #eye-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); z-index: 12; }
+      #glasses-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); z-index: 12; }
       
       .cam-overlay-info { position: absolute; top: 8px; left: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.58rem; background: rgba(0,0,0,0.7); border: 1px solid var(--red-blood); color: #fff; padding: 3px 6px; border-radius: 2px; z-index: 15; }
       .eye-status-badge { position: absolute; bottom: 8px; right: 8px; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: bold; padding: 4px 8px; border-radius: 3px; background: rgba(0, 255, 102, 0.25); border: 1px solid var(--green-spectral); color: var(--green-spectral); z-index: 15; }
@@ -134,7 +134,7 @@
         <div class="cam-overlay-info">FACE-TRACKING WebAR : ACTIF</div>
         <div class="laser-scanner" id="laser"></div>
         <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="eye-canvas"></canvas>
+        <canvas id="glasses-canvas"></canvas>
         <div class="eye-status-badge" id="eye-badge">REGARD : ALIGNÉ</div>
       </div>
 
@@ -246,18 +246,18 @@
 
       function startFaceTracker() {
         const videoElement = document.getElementById('webcam');
-        const eyeCanvas = document.getElementById('eye-canvas');
-        const ctx = eyeCanvas.getContext('2d');
+        const glassesCanvas = document.getElementById('glasses-canvas');
+        const ctx = glassesCanvas.getContext('2d');
 
         const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
         faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5 });
         
         faceMesh.onResults((results) => {
-          if (eyeCanvas.width !== videoElement.videoWidth || eyeCanvas.height !== videoElement.videoHeight) {
-            eyeCanvas.width = videoElement.videoWidth || 480;
-            eyeCanvas.height = videoElement.videoHeight || 360;
+          if (glassesCanvas.width !== videoElement.videoWidth || glassesCanvas.height !== videoElement.videoHeight) {
+            glassesCanvas.width = videoElement.videoWidth || 480;
+            glassesCanvas.height = videoElement.videoHeight || 360;
           }
-          ctx.clearRect(0, 0, eyeCanvas.width, eyeCanvas.height);
+          ctx.clearRect(0, 0, glassesCanvas.width, glassesCanvas.height);
 
           if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
           const landmarks = results.multiFaceLandmarks[0];
@@ -272,32 +272,42 @@
           if (leftIris && rightIris) {
             ctx.save();
             ctx.lineWidth = 3;
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 10;
 
-            if (noseRelativePos > 0.62 || foreheadY > 0.35) {
-              ctx.strokeStyle = '#ff0033';
-              ctx.fillStyle = 'rgba(255, 0, 51, 0.4)';
-              ctx.shadowColor = '#ff0033';
-              
-              ctx.beginPath();
-              ctx.arc(leftIris.x * eyeCanvas.width, leftIris.y * eyeCanvas.height, 18, 0, 2 * Math.PI);
-              ctx.fill(); ctx.stroke();
+            const isAlert = noseRelativePos > 0.62 || foreheadY > 0.35;
+            const color = isAlert ? '#ff0033' : '#00ff66';
+            ctx.strokeStyle = color;
+            ctx.fillStyle = isAlert ? 'rgba(255, 0, 51, 0.25)' : 'rgba(0, 255, 102, 0.08)';
+            ctx.shadowColor = color;
 
-              ctx.beginPath();
-              ctx.arc(rightIris.x * eyeCanvas.width, rightIris.y * eyeCanvas.height, 18, 0, 2 * Math.PI);
-              ctx.fill(); ctx.stroke();
-            } else {
-              ctx.strokeStyle = '#00ff66';
-              ctx.shadowColor = '#00ff66';
+            // Calcul de la taille et position des lunettes cyber / tactiques autour des yeux
+            const lx = leftIris.x * glassesCanvas.width;
+            const ly = leftIris.y * glassesCanvas.height;
+            const rx = rightIris.x * glassesCanvas.width;
+            const ry = rightIris.y * glassesCanvas.height;
 
-              ctx.beginPath();
-              ctx.arc(leftIris.x * eyeCanvas.width, leftIris.y * eyeCanvas.height, 12, 0, 2 * Math.PI);
-              ctx.stroke();
+            const dx = rx - lx;
+            const dy = ry - ly;
+            const eyeDist = Math.sqrt(dx * dx + dy * dy);
+            const lensW = eyeDist * 0.9;
+            const lensH = eyeDist * 0.6;
 
-              ctx.beginPath();
-              ctx.arc(rightIris.x * eyeCanvas.width, rightIris.y * eyeCanvas.height, 12, 0, 2 * Math.PI);
-              ctx.stroke();
-            }
+            // Verre gauche (Lunette cybernétique)
+            ctx.beginPath();
+            ctx.roundRect(lx - lensW/2, ly - lensH/2, lensW, lensH, 6);
+            ctx.fill(); ctx.stroke();
+
+            // Verre droit (Lunette cybernétique)
+            ctx.beginPath();
+            ctx.roundRect(rx - lensW/2, ry - lensH/2, lensW, lensH, 6);
+            ctx.fill(); ctx.stroke();
+
+            // Pont de nez des lunettes
+            ctx.beginPath();
+            ctx.moveTo(lx + lensW/2, ly);
+            ctx.lineTo(rx - lensW/2, ry);
+            ctx.stroke();
+
             ctx.restore();
           }
 
