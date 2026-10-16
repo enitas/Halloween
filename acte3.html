@@ -224,7 +224,6 @@
         document.getElementById('geofence-dist-text').innerText = "GPS NON SUPPORTÉ";
       }
 
-      // Fonction de déverrouillage (GPS ou 5 clics sur le titre)
       function unlockGeofence() {
         if (isGeofenceUnlocked) return;
         isGeofenceUnlocked = true;
@@ -268,13 +267,13 @@
               document.getElementById('bridge-fill').style.width = '0%';
               document.getElementById('bridge-percent').innerText = '0%';
               
-              // Filtre rouge sang maintenu pendant 30 secondes en cas d'échec
+              // Masquage rouge sang réduit à 1 seconde exactement (jamais permanent)
               gsap.killTweensOf("#flash");
               gsap.set("#flash", { opacity: 0.85 });
-              gsap.to("#flash", { opacity: 0, duration: 1, delay: 30 });
+              gsap.to("#flash", { opacity: 0, duration: 0.5, delay: 1 });
               
               document.getElementById('terminal-content').style.color = "#ff0033";
-              document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! L'anomalie aveugle l'écran pour 30 secondes. Recommencez !";
+              document.getElementById('terminal-content').innerText = "> CRITIQUE : Vous avez baissé les yeux ! L'anomalie frappe l'écran. Recommencez !";
             }
           } else {
             if (isHeadDown) {
