@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net https://aframe.io; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://aframe.io; style-src 'self' 'unsafe-inline'; media-src 'self'; img-src 'self' data:;">
     <title>Escape Game - Acte 1 : Le Parvis</title>
     
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     
     <!-- A-Frame & MindAR -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
@@ -17,14 +18,10 @@
             background-color: #050505;
             color: #e5e5e5;
             font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
         }
-        .blood-glow {
-            text-shadow: 0 0 10px #ff1a1a, 0 0 20px #8b0000;
-        }
-        .blood-border {
-            border: 2px solid #8b0000;
-            box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
-        }
+        .blood-glow { text-shadow: 0 0 10px #ff1a1a, 0 0 20px #8b0000; }
+        .blood-border { border: 2px solid #8b0000; box-shadow: 0 0 15px rgba(139, 0, 0, 0.6); }
         .blood-btn {
             background: linear-gradient(135deg, #8b0000, #4a0000);
             transition: all 0.3s ease;
@@ -35,13 +32,13 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between p-4 overflow-x-hidden">
+<body class="min-h-screen flex flex-col items-center justify-between p-4">
 
-    <!-- AUDIO ENIGME 1 -->
-    <audio id="audioEnigme" src="enigme1.mp3" preload="auto"></audio>
+    <!-- AUDIO LOCAL (Racine GitHub) -->
+    <audio id="audioEnigme" src="./enigme1.mp3" preload="auto"></audio>
 
     <!-- HEADER -->
-    <header class="w-full max-w-md text-center py-4 border-b border-red-900/50">
+    <header class="w-full max-w-md text-center py-4 border-b border-red-950">
         <h1 class="text-2xl font-black text-red-600 blood-glow tracking-widest uppercase">Sanctuarium</h1>
         <p class="text-xs text-red-400/80 mt-1">Acte I : Le Parvis Interdit</p>
     </header>
@@ -50,7 +47,7 @@
     <main class="w-full max-w-md flex-1 flex flex-col items-center justify-center my-6 space-y-6">
 
         <!-- ÉTAPE 1 : RADAR / GÉOLOCALISATION -->
-        <div id="gps-section" class="w-full bg-black/80 blood-border rounded-xl p-6 text-center space-y-4">
+        <div id="gps-section" class="w-full bg-neutral-950 blood-border rounded-xl p-6 text-center space-y-4">
             <div class="inline-block p-3 rounded-full bg-red-950/40 text-red-500 mb-2 animate-pulse">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -65,13 +62,11 @@
                 <p id="status-gps" class="text-xs text-gray-500 mt-1">En attente de signal satellite...</p>
             </div>
 
-            <!-- Bouton de secours si l'audio est bloqué -->
-            <button id="play-audio-btn" onclick="playAudioDirectly()" class="hidden w-full blood-btn text-white text-xs py-2 rounded font-bold uppercase tracking-wider mb-2">
-                🔊 Écouter l'indice audio
+            <button id="play-audio-btn" type="button" class="w-full blood-btn text-white text-xs py-2.5 rounded font-bold uppercase tracking-wider mb-2 cursor-pointer">
+                🔊 Écouter / Relancer l'indice audio
             </button>
 
-            <!-- Bouton de simulation pour test hors zone -->
-            <button onclick="triggerProximity()" class="w-full py-2 text-xs text-gray-400 hover:text-red-400 underline transition">
+            <button id="force-trigger-btn" type="button" class="w-full py-2 text-xs text-gray-400 hover:text-red-400 underline transition cursor-pointer">
                 [Mode Test / Forcer l'entrée dans le périmètre]
             </button>
         </div>
@@ -82,7 +77,7 @@
                 Mode AR Actif : Visez la porte en bois
             </div>
             
-            <!-- A-Frame / MindAR Scene avec autoStart: false -->
+            <!-- A-Frame / MindAR Scene avec targets.mind à la racine -->
             <a-scene 
                 embedded 
                 mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no;" 
@@ -96,13 +91,6 @@
                     <a-plane position="0 0 0" height="1" width="1" rotation="0 0 0" material="color: red; transparent: true; opacity: 0.5"></a-plane>
                 </a-entity>
             </a-scene>
-
-            <!-- Bouton de secours -->
-            <div class="absolute bottom-3 left-0 right-0 z-20 flex justify-center">
-                <button onclick="openRiddle()" class="blood-btn text-white text-xs px-4 py-2 rounded-full uppercase tracking-wider font-bold">
-                    Simuler le scan de la porte
-                </button>
-            </div>
         </div>
 
     </main>
@@ -112,38 +100,40 @@
         <div class="bg-zinc-950 blood-border rounded-xl p-6 w-full max-w-md space-y-4 relative">
             <h3 class="text-xl font-bold text-red-600 blood-glow text-center uppercase">Le Sceau de l'Église</h3>
             <p class="text-sm text-gray-300 text-center">
-                La porte s'est entrouverte. Pour franchir le seuil, répondez à l'énigme murmurée par les voix :
+                La porte s'est entrouverte. Pour franchir le seuil, répondez à l'énigme :
             </p>
-            <div class="bg-red-950/30 p-3 rounded border border-red-900 text-red-200 text-xs italic text-center">
-                "Quel est le mot gravé sur le seuil du néant ?" (Indice audio : Écoutez bien le message)
+            <div class="bg-red-950/30 p-3 rounded border border-red-900 text-red-200 text-xs italic text-center space-y-2">
+                <p>"Compte les clous noirs ."</p>
+                <button type="button" class="modal-audio-btn text-red-400 underline text-[10px] uppercase font-bold cursor-pointer">
+                    🔊 Réécouter l'indice audio
+                </button>
             </div>
 
-            <form id="riddle-form" onsubmit="checkRiddle(event)" class="space-y-4">
+            <form id="riddle-form" class="space-y-4">
                 <input type="text" id="riddle-answer" placeholder="Votre réponse..." required
                     class="w-full bg-black border border-red-900 rounded p-3 text-red-100 focus:outline-none focus:border-red-600 text-center uppercase tracking-widest font-mono">
                 
                 <div id="error-msg" class="text-xs text-red-500 text-center hidden">Réponse incorrecte, le sang coule à nouveau...</div>
 
-                <button type="submit" class="w-full blood-btn text-white font-bold py-3 rounded uppercase tracking-widest text-sm shadow-lg">
+                <button type="submit" class="w-full blood-btn text-white font-bold py-3 rounded uppercase tracking-widest text-sm shadow-lg cursor-pointer">
                     Sceller le pacte
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- FOOTER -->
     <footer class="text-center text-xs text-gray-600 py-2">
         Escape Game Acte I &bull; Ne regardez pas en arrière
     </footer>
 
-    <!-- SCRIPT LOGIQUE -->
+    <!-- SCRIPT LOGIQUE CORRIGÉ -->
     <script>
         const TARGET_LAT = 47.185617;
         const TARGET_LON = 2.612950;
         const THRESHOLD_METERS = 20;
 
-        let audioPlayed = false;
         let watchId = null;
+        const audioElement = document.getElementById('audioEnigme');
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
@@ -158,6 +148,15 @@
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
             return R * c;
+        }
+
+        async function playAudioDirectly() {
+            try {
+                audioElement.currentTime = 0;
+                await audioElement.play();
+            } catch (e) {
+                console.warn("Lecture audio bloquée par la politique du navigateur :", e);
+            }
         }
 
         function initGPS() {
@@ -176,7 +175,7 @@
                         }
                     },
                     (error) => {
-                        document.getElementById('status-gps').innerText = `Erreur GPS : ${error.message}. Utilisez le mode test ci-dessous.`;
+                        document.getElementById('status-gps').innerText = `Erreur GPS : ${error.message}. Utilisez le mode test.`;
                     },
                     { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
                 );
@@ -185,81 +184,75 @@
             }
         }
 
-        function playAudioDirectly() {
-            const audio = document.getElementById('audioEnigme');
-            audio.play().then(() => {
-                audioPlayed = true;
-                document.getElementById('play-audio-btn').classList.add('hidden');
-            }).catch(e => console.log("Erreur lecture audio :", e));
-        }
-
-        // DÉCLENCHEMENT DU MODE AR ET DE LA CAMÉRA
         function triggerProximity() {
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
             }
 
-            if (!audioPlayed) {
-                const audio = document.getElementById('audioEnigme');
-                audio.play().then(() => {
-                    audioPlayed = true;
-                }).catch(e => {
-                    console.log("Lecture audio bloquée :", e);
-                    document.getElementById('play-audio-btn').classList.remove('hidden');
-                });
-            }
+            // Déclenchement de l'audio local enigme1.mp3
+            playAudioDirectly();
 
-            // 1. Afficher la section AR
+            // 1. Masquer le GPS et afficher la section AR
             document.getElementById('gps-section').classList.add('hidden');
             document.getElementById('ar-section').classList.remove('hidden');
 
-            // 2. Démarrer manuellement la caméra MindAR
-            const sceneEl = document.querySelector('a-scene');
-            if (sceneEl) {
-                const startAR = () => {
-                    const arSystem = sceneEl.systems['mindar-image-system'];
-                    if (arSystem) {
-                        arSystem.start(); // Démarrage officiel & demande de permissions
-                    }
-                };
+            // 2. CORRECTIF CRITIQUE : Laisser le navigateur effectuer le reflow du DOM
+            // avant d'initialiser MindAR pour éviter un canvas WebGL 0x0 pixels
+            setTimeout(() => {
+                const sceneEl = document.querySelector('a-scene');
+                if (sceneEl) {
+                    const startAR = async () => {
+                        const arSystem = sceneEl.systems['mindar-image-system'];
+                        if (arSystem) {
+                            try {
+                                await arSystem.start();
+                            } catch (err) {
+                                console.error("Échec du démarrage de MindAR / Caméra :", err);
+                                alert("Impossible d'accéder à la caméra. Vérifiez que vous êtes en HTTPS et que l'autorisation est accordée.");
+                            }
+                        }
+                    };
 
-                if (sceneEl.hasLoaded) {
-                    startAR();
-                } else {
-                    sceneEl.addEventListener('render-start', startAR);
+                    if (sceneEl.hasLoaded) {
+                        startAR();
+                    } else {
+                        sceneEl.addEventListener('render-start', startAR);
+                    }
                 }
-            }
+            }, 100);
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             initGPS();
 
+            document.getElementById('play-audio-btn').addEventListener('click', playAudioDirectly);
+            document.querySelectorAll('.modal-audio-btn').forEach(btn => {
+                btn.addEventListener('click', playAudioDirectly);
+            });
+            document.getElementById('force-trigger-btn').addEventListener('click', triggerProximity);
+
             const targetEntity = document.querySelector('#ar-target');
             if (targetEntity) {
                 targetEntity.addEventListener("targetFound", () => {
-                    openRiddle();
+                    document.getElementById('riddle-modal').classList.remove('hidden');
                 });
             }
+
+            document.getElementById('riddle-form').addEventListener('submit', (event) => {
+                event.preventDefault();
+                const answerInput = document.getElementById('riddle-answer').value.trim().toLowerCase();
+                const correctAnswers = ["20"]; 
+
+                if (correctAnswers.includes(answerInput)) {
+                    window.location.href = "acte1bis.html";
+                } else {
+                    const errorMsg = document.getElementById('error-msg');
+                    errorMsg.classList.remove('hidden');
+                    setTimeout(() => errorMsg.classList.add('hidden'), 3000);
+                }
+            });
         });
-
-        function openRiddle() {
-            document.getElementById('riddle-modal').classList.remove('hidden');
-        }
-
-        function checkRiddle(event) {
-            event.preventDefault();
-            const answerInput = document.getElementById('riddle-answer').value.trim().toLowerCase();
-            const correctAnswers = ["neant", "néant", "eglise", "église", "lux"]; 
-
-            if (correctAnswers.includes(answerInput)) {
-                window.location.href = "acte1bis.html";
-            } else {
-                const errorMsg = document.getElementById('error-msg');
-                errorMsg.classList.remove('hidden');
-                setTimeout(() => errorMsg.classList.add('hidden'), 3000);
-            }
-        }
     </script>
 </body>
 </html>
