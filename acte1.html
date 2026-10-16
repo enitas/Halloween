@@ -61,17 +61,14 @@
                 <p id="status-gps" class="text-xs text-gray-500 mt-1">En attente de signal satellite...</p>
             </div>
 
-            <!-- BOUTON D'ACTIVATION AR DIRECT (Liaison onclick infaillible) -->
-            <button type="button" onclick="launchARExperience()" class="w-full blood-btn text-white text-sm py-3 rounded font-bold uppercase tracking-wider shadow-lg shadow-red-950 cursor-pointer">
+            <!-- BOUTON D'ACTIVATION AR (Masqué par défaut, s'affiche à proximité) -->
+            <button id="activate-ar-btn" type="button" onclick="launchARExperience()" class="hidden w-full blood-btn text-white text-sm py-3 rounded font-bold uppercase tracking-wider shadow-lg shadow-red-950 cursor-pointer animate-bounce">
                 📷 ACTIVER LA CAMÉRA & LE SCELLÉ AR
             </button>
 
-            <button type="button" onclick="playAudioDirectly()" class="w-full bg-neutral-900 border border-red-900/50 text-red-400 text-xs py-2 rounded font-bold uppercase tracking-wider hover:text-white transition cursor-pointer">
-                🔊 Écouter / Relancer l'indice audio
-            </button>
-
-            <button type="button" onclick="launchARExperience()" class="w-full py-2 text-xs text-gray-400 hover:text-red-400 underline transition cursor-pointer">
-                [Mode Test : Forcer l'accès Caméra]
+            <!-- BOUTON MODE TEST (Caché dans le DOM comme demandé) -->
+            <button id="force-trigger-btn" type="button" onclick="launchARExperience()" class="hidden w-full py-2 text-xs text-gray-400 hover:text-red-400 underline transition cursor-pointer">
+                [Mode Test : Caméra Immédiate]
             </button>
         </div>
 
@@ -178,6 +175,8 @@
                                 watchId = null;
                             }
                             if (statusEl) statusEl.innerText = "Périmètre atteint ! Sanctuaire détecté.";
+                            // Affichage exclusif du bouton AR à proximité
+                            document.getElementById('activate-ar-btn').classList.remove('hidden');
                         }
                     },
                     (error) => {
@@ -192,7 +191,6 @@
             }
         }
 
-        // Fonction globale appelée directement par le clic utilisateur
         async function launchARExperience() {
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
@@ -201,13 +199,11 @@
 
             playAudioDirectly();
 
-            // Basculement immédiat du DOM
             const gpsSec = document.getElementById('gps-section');
             const arSec = document.getElementById('ar-section');
             if (gpsSec) gpsSec.classList.add('hidden');
             if (arSec) arSec.classList.remove('hidden');
 
-            // Initialisation de la caméra MindAR après reflow
             setTimeout(async () => {
                 const sceneEl = document.querySelector('a-scene');
                 if (sceneEl) {
@@ -221,7 +217,6 @@
                                 alert("Impossible d'activer la caméra. Vérifiez que vous êtes en HTTPS et que l'accès est autorisé.");
                             }
                         } else {
-                            console.warn("Système MindAR non prêt, nouvelle tentative...");
                             setTimeout(startSystem, 500);
                         }
                     };
@@ -249,7 +244,6 @@
             }
         }
 
-        // Démarrage GPS au chargement
         window.addEventListener('load', () => {
             initGPS();
             const targetEntity = document.querySelector('#ar-target');
